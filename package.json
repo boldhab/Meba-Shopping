@@ -1,0 +1,20 @@
+{
+  "name": "meba-supermarket",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace @meba/web",
+    "dev:api": "npm run dev --workspace @meba/api",
+    "build:web": "npm run build --workspace @meba/web",
+    "build:api": "npm run build --workspace @meba/api",
+    "lint:web": "npm run lint --workspace @meba/web",
+    "typecheck": "npm run typecheck --workspace @meba/web && npm run typecheck --workspace @meba/api"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
+
