@@ -16,6 +16,7 @@ QUIET_PERIOD="${AUTO_GIT_SYNC_QUIET_PERIOD:-3}"
 MESSAGE_PREFIX="${AUTO_GIT_SYNC_MESSAGE_PREFIX:-auto:}"
 BRANCH_REGEX="${AUTO_GIT_SYNC_BRANCH_REGEX:-}"
 IGNORE_REGEX="${AUTO_GIT_SYNC_IGNORE_REGEX:-(^|/)(dist|build|coverage|\.next|out|tmp|temp)/|\.log$}"
+KEYWORDS_CSV="${AUTO_GIT_SYNC_KEYWORDS:-auth,cart,checkout,order,product,catalog,category,payment,user,admin,search,profile,inventory,notification}"
 REQUIRE_FLAG="${AUTO_GIT_SYNC_REQUIRE_FLAG:-0}"
 ENABLE_FLAG="${AUTO_GIT_SYNC_ENABLE:-0}"
 LOCK_FILE="${REPO_ROOT}/.git/auto-git-sync.lock"
@@ -59,9 +60,17 @@ build_commit_message() {
   local update_count=0
   local delete_count=0
   local rename_count=0
-  local -a areas=()
-  local -a summary_parts=()
   local -a area_preview=()
+  local top_topic=""
+  local primary_action="update"
+  local scope_text="project"
+  local keyword
+  local lower_path
+
+  declare -A area_counts=()
+  declare -A topic_counts=()
+  local -a topic_keywords=()
+  IFS=',' read -r -a topic_keywords <<< "${KEYWORDS_CSV}"
 
   join_by() {
     local sep="$1"
@@ -73,17 +82,6 @@ build_commit_message() {
       out+="${sep}${item}"
     done
     echo "${out}"
-  }
-
-  add_area() {
-    local area="$1"
-    local existing
-    for existing in "${areas[@]}"; do
-      if [[ "${existing}" == "${area}" ]]; then
-        return
-      fi
-    done
-    areas+=("${area}")
   }
 
   while IFS=$'\t' read -r status path_old path_new; do
@@ -101,30 +99,44 @@ build_commit_message() {
     if [[ -z "${area}" ]] || [[ "${area}" == "${target_path}" ]]; then
       area="root"
     fi
-    add_area "${area}"
+    area_counts["${area}"]=$(( ${area_counts["${area}"]:-0} + 1 ))
+
+    lower_path="${target_path,,}"
+    for keyword in "${topic_keywords[@]}"; do
+      keyword="$(echo "${keyword}" | xargs)"
+      [[ -z "${keyword}" ]] && continue
+      if [[ "${lower_path}" == *"${keyword}"* ]]; then
+        topic_counts["${keyword}"]=$(( ${topic_counts["${keyword}"]:-0} + 1 ))
+      fi
+    done
   done < <(git diff --cached --name-status)
 
-  (( add_count > 0 )) && summary_parts+=("add ${add_count}")
-  (( update_count > 0 )) && summary_parts+=("update ${update_count}")
-  (( delete_count > 0 )) && summary_parts+=("delete ${delete_count}")
-  (( rename_count > 0 )) && summary_parts+=("rename ${rename_count}")
-
-  if [[ ${#summary_parts[@]} -eq 0 ]]; then
-    summary_parts+=("sync staged changes")
-  fi
-
-  area_preview=("${areas[@]:0:3}")
-  area_text=""
-  if [[ ${#area_preview[@]} -gt 0 ]]; then
-    area_text=" in $(join_by ', ' "${area_preview[@]}")"
-  fi
-
-  action_text="$(join_by ', ' "${summary_parts[@]}")"
-
-  if [[ ${#areas[@]} -gt 3 ]]; then
-    echo "${MESSAGE_PREFIX} ${action_text}${area_text} and others"
+  if (( add_count > 0 && update_count == 0 && delete_count == 0 && rename_count == 0 )); then
+    primary_action="add"
+  elif (( delete_count > 0 && add_count == 0 && update_count == 0 && rename_count == 0 )); then
+    primary_action="remove"
+  elif (( rename_count > 0 && add_count == 0 && update_count == 0 && delete_count == 0 )); then
+    primary_action="rename"
   else
-    echo "${MESSAGE_PREFIX} ${action_text}${area_text}"
+    primary_action="update"
+  fi
+
+  if (( ${#topic_counts[@]} > 0 )); then
+    top_topic="$(for t in "${!topic_counts[@]}"; do echo "${topic_counts[$t]} $t"; done | sort -nr | head -n1 | awk '{print $2}')"
+  fi
+
+  if (( ${#area_counts[@]} > 0 )); then
+    mapfile -t area_preview < <(for a in "${!area_counts[@]}"; do echo "${area_counts[$a]} $a"; done | sort -nr | head -n2 | awk '{print $2}')
+  fi
+
+  if [[ ${#area_preview[@]} -gt 0 ]]; then
+    scope_text="$(join_by ' and ' "${area_preview[@]}")"
+  fi
+
+  if [[ -n "${top_topic}" ]]; then
+    echo "${MESSAGE_PREFIX} ${primary_action} ${top_topic} flow in ${scope_text}"
+  else
+    echo "${MESSAGE_PREFIX} ${primary_action} changes in ${scope_text}"
   fi
 }
 
