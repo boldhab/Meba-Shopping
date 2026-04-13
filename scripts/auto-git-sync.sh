@@ -13,7 +13,7 @@ cd "${REPO_ROOT}"
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 INTERVAL="${AUTO_GIT_SYNC_INTERVAL:-3}"
 QUIET_PERIOD="${AUTO_GIT_SYNC_QUIET_PERIOD:-3}"
-MESSAGE_PREFIX="${AUTO_GIT_SYNC_MESSAGE_PREFIX:-auto:}"
+MESSAGE_PREFIX="${AUTO_GIT_SYNC_MESSAGE_PREFIX:-}"
 BRANCH_REGEX="${AUTO_GIT_SYNC_BRANCH_REGEX:-}"
 IGNORE_REGEX="${AUTO_GIT_SYNC_IGNORE_REGEX:-(^|/)(dist|build|coverage|\.next|out|tmp|temp)/|\.log$}"
 KEYWORDS_CSV="${AUTO_GIT_SYNC_KEYWORDS:-auth,login,register,password,user,users,profile,customer,customers,cart,carts,checkout,order,orders,product,products,category,categories,catalog,inventory,stock,price,pricing,payment,payments,stripe,review,reviews,rating,ratings,wishlist,coupon,coupons,discount,discounts,shipping,address,analytics,dashboard,admin,report,reports,notification,notifications,webhook,webhooks,search,filter,sort}" 
@@ -133,10 +133,18 @@ build_commit_message() {
     scope_text="$(join_by ' and ' "${area_preview[@]}")"
   fi
 
+  local base_message=""
+
   if [[ -n "${top_topic}" ]]; then
-    echo "${MESSAGE_PREFIX} ${primary_action} ${top_topic} flow in ${scope_text}"
+    base_message="${primary_action} ${top_topic} flow in ${scope_text}"
   else
-    echo "${MESSAGE_PREFIX} ${primary_action} changes in ${scope_text}"
+    base_message="${primary_action} changes in ${scope_text}"
+  fi
+
+  if [[ -n "${MESSAGE_PREFIX}" ]]; then
+    echo "${MESSAGE_PREFIX} ${base_message}"
+  else
+    echo "${base_message}"
   fi
 }
 
