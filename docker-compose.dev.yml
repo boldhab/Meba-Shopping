@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  client:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: npm run dev:web
+    ports:
+      - "3000:3000"
+
+  server:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: npm run dev:api
+    ports:
+      - "4000:4000"

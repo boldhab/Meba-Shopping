@@ -1,0 +1,26 @@
+import { Router } from "express";
+import { adminRoutes } from "./adminRoutes";
+import { analyticsRoutes } from "./analyticsRoutes";
+import { authRoutes } from "./authRoutes";
+import { cartRoutes } from "./cartRoutes";
+import { categoryRoutes } from "./categoryRoutes";
+import { couponRoutes } from "./couponRoutes";
+import { orderRoutes } from "./orderRoutes";
+import { paymentRoutes } from "./paymentRoutes";
+import { productRoutes } from "./productRoutes";
+import { reviewRoutes } from "./reviewRoutes";
+import { userRoutes } from "./userRoutes";
+
+export const apiV1Router = Router();
+
+apiV1Router.use("/auth", authRoutes);
+apiV1Router.use("/products", productRoutes);
+apiV1Router.use("/orders", orderRoutes);
+apiV1Router.use("/cart", cartRoutes);
+apiV1Router.use("/users", userRoutes);
+apiV1Router.use("/categories", categoryRoutes);
+apiV1Router.use("/payments", paymentRoutes);
+apiV1Router.use("/coupons", couponRoutes);
+apiV1Router.use("/reviews", reviewRoutes);
+apiV1Router.use("/admin", adminRoutes);
+apiV1Router.use("/analytics", analyticsRoutes);

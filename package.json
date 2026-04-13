@@ -3,7 +3,8 @@
   "private": true,
   "version": "0.1.0",
   "workspaces": [
-    "apps/*"
+    "client",
+    "server"
   ],
   "scripts": {
     "dev:web": "npm run dev --workspace @meba/web",
@@ -17,4 +18,3 @@
     "node": ">=20.0.0"
   }
 }
-

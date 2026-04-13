@@ -11,6 +11,6 @@ coverage
 .env.development.local
 .env.test.local
 .env.production.local
-apps/api/dist
+client/.next
+server/dist
 database/dev.db
-
