@@ -1,5 +1,10 @@
-import type { NextFunction, Request, Response } from "express";
+import morgan from "morgan";
+import { logger } from "../config/logger";
 
-export function loggingMiddleware(_request: Request, _response: Response, next: NextFunction) {
-  next();
-}
+export const loggingMiddleware = morgan("combined", {
+  stream: {
+    write(message: string) {
+      logger.info(message.trim());
+    }
+  }
+});

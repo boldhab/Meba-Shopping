@@ -1,5 +1,12 @@
-import type { NextFunction, Request, Response } from "express";
+import cors from "cors";
+import helmet from "helmet";
+import { env } from "../config/env";
 
-export function securityMiddleware(_request: Request, _response: Response, next: NextFunction) {
-  next();
-}
+export const securityMiddleware = [
+  helmet(),
+  cors({
+    origin: env.clientUrl,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+  })
+];

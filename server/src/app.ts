@@ -1,18 +1,20 @@
-import cors from "cors";
 import express from "express";
-import { env } from "./config/env";
+import { errorMiddleware } from "./middleware/errorMiddleware";
+import { loggingMiddleware } from "./middleware/loggingMiddleware";
+import { rateLimitMiddleware } from "./middleware/rateLimitMiddleware";
+import { securityMiddleware } from "./middleware/securityMiddleware";
 import { apiV1Router } from "./routes/v1";
 import { webhookRouter } from "./routes/webhookRoutes";
 
 export function createApp() {
   const app = express();
 
-  app.use(
-    cors({
-      origin: env.clientUrl
-    })
-  );
+  app.set("trust proxy", 1);
+  app.use(securityMiddleware);
+  app.use(loggingMiddleware);
+  app.use(rateLimitMiddleware);
   app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
   app.use("/api/v1", apiV1Router);
   app.use("/webhooks", webhookRouter);
 
@@ -22,6 +24,8 @@ export function createApp() {
       service: "meba-api"
     });
   });
+
+  app.use(errorMiddleware);
 
   return app;
 }
