@@ -162,6 +162,8 @@ If you want fully automatic local staging, commit, and push whenever changes app
 npm run git:auto-sync
 ```
 
+It is also configured to auto-start on project open in VS Code through `.vscode/tasks.json`.
+
 Notes:
 
 - This runs continuously until you stop it with `Ctrl+C`
