@@ -163,13 +163,14 @@ npm run git:auto-sync
 ```
 
 It is also configured to auto-start on project open in VS Code through `.vscode/tasks.json`.
-The startup task uses a branch filter so it only runs automatically on `feature/*` branches.
+The startup task runs automatically on project open, and the default script is branch-filtered so it only runs on `feature/*` branches.
 
 Notes:
 
 - This runs continuously until you stop it with `Ctrl+C`
 - Default commit message format: `chore: auto-sync YYYY-MM-DD HH:MM:SS`
 - It pushes to `origin` on your current branch
+- By default, it only runs on `feature/*` branches
 - You can tune behavior with environment variables: `AUTO_GIT_SYNC_INTERVAL` (seconds, default `3`), `AUTO_GIT_SYNC_MESSAGE_PREFIX` (default `chore: auto-sync`), and `AUTO_GIT_SYNC_BRANCH_REGEX` (only run on matching branch names)
 
 Example:
