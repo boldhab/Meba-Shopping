@@ -13,7 +13,14 @@ cd "${REPO_ROOT}"
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 INTERVAL="${AUTO_GIT_SYNC_INTERVAL:-3}"
 MESSAGE_PREFIX="${AUTO_GIT_SYNC_MESSAGE_PREFIX:-chore: auto-sync}"
+BRANCH_REGEX="${AUTO_GIT_SYNC_BRANCH_REGEX:-}"
 LOCK_FILE="${REPO_ROOT}/.git/auto-git-sync.lock"
+
+if [[ -n "${BRANCH_REGEX}" ]] && [[ ! "${BRANCH}" =~ ${BRANCH_REGEX} ]]; then
+  echo "Current branch '${BRANCH}' does not match AUTO_GIT_SYNC_BRANCH_REGEX='${BRANCH_REGEX}'."
+  echo "auto-git-sync will not run on this branch."
+  exit 0
+fi
 
 if [[ -f "${LOCK_FILE}" ]]; then
   EXISTING_PID="$(cat "${LOCK_FILE}" 2>/dev/null || true)"
