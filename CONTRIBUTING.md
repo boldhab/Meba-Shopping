@@ -174,6 +174,7 @@ Notes:
 - It waits for a quiet period before committing (debounce)
 - It skips files matching generated-artifact patterns unless you override the ignore regex
 - It detects domain keywords from changed paths (for example `auth`, `cart`, `checkout`) to produce more meaningful commit descriptions
+- Default keyword set is tuned for this repo domain: auth, users, cart, checkout, orders, products, categories, payments, shipping, inventory, reviews, admin, analytics, notifications, webhooks, and related terms
 - Startup logs show active branch, branch pattern, debounce settings, and ignore regex
 - You can tune behavior with environment variables: `AUTO_GIT_SYNC_INTERVAL` (seconds, default `3`), `AUTO_GIT_SYNC_QUIET_PERIOD` (seconds, default `3`), `AUTO_GIT_SYNC_MESSAGE_PREFIX` (default `auto:`), `AUTO_GIT_SYNC_BRANCH_REGEX` (only run on matching branch names), `AUTO_GIT_SYNC_IGNORE_REGEX` (skip matching files from commit), and `AUTO_GIT_SYNC_KEYWORDS` (comma-separated keyword list for semantic message generation)
 
@@ -187,6 +188,12 @@ Feature branches only:
 
 ```bash
 AUTO_GIT_SYNC_BRANCH_REGEX='^feature/' npm run git:auto-sync
+```
+
+Custom semantic keywords:
+
+```bash
+AUTO_GIT_SYNC_KEYWORDS='auth,cart,checkout,orders,payments,inventory,reviews' npm run git:auto-sync
 ```
 
 Require an explicit activation flag:
