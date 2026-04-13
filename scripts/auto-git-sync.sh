@@ -63,6 +63,18 @@ build_commit_message() {
   local -a summary_parts=()
   local -a area_preview=()
 
+  join_by() {
+    local sep="$1"
+    shift
+    local out="$1"
+    shift || true
+    local item
+    for item in "$@"; do
+      out+="${sep}${item}"
+    done
+    echo "${out}"
+  }
+
   add_area() {
     local area="$1"
     local existing
@@ -104,14 +116,10 @@ build_commit_message() {
   area_preview=("${areas[@]:0:3}")
   area_text=""
   if [[ ${#area_preview[@]} -gt 0 ]]; then
-    area_text=" in ${area_preview[*]}"
-    area_text="${area_text// /, }"
-    area_text="${area_text/, / }"
+    area_text=" in $(join_by ', ' "${area_preview[@]}")"
   fi
 
-  action_text="${summary_parts[*]}"
-  action_text="${action_text// /, }"
-  action_text="${action_text/, / }"
+  action_text="$(join_by ', ' "${summary_parts[@]}")"
 
   if [[ ${#areas[@]} -gt 3 ]]; then
     echo "${MESSAGE_PREFIX} ${action_text}${area_text} and others"
