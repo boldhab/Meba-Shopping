@@ -154,6 +154,29 @@ This prevents `develop` from falling behind production.
 - Use descriptive branch names
 - Write clear commit messages
 
+## Optional Local Auto Sync
+
+If you want fully automatic local staging, commit, and push whenever changes appear, you can run:
+
+```bash
+npm run git:auto-sync
+```
+
+Notes:
+
+- This runs continuously until you stop it with `Ctrl+C`
+- Default commit message format: `chore: auto-sync YYYY-MM-DD HH:MM:SS`
+- It pushes to `origin` on your current branch
+- You can tune behavior with environment variables: `AUTO_GIT_SYNC_INTERVAL` (seconds, default `3`) and `AUTO_GIT_SYNC_MESSAGE_PREFIX` (default `chore: auto-sync`)
+
+Example:
+
+```bash
+AUTO_GIT_SYNC_INTERVAL=5 AUTO_GIT_SYNC_MESSAGE_PREFIX="chore: autosave" npm run git:auto-sync
+```
+
+Use this mode carefully, since it can create many small commits quickly.
+
 ## Example Branch Map
 
 ```text
