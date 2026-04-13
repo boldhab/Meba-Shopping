@@ -2,20 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Auto Git Sync",
-      "type": "shell",
-      "command": "npm run git:auto-sync",
-      "isBackground": true,
-      "presentation": {
-        "reveal": "never",
-        "panel": "dedicated"
-      },
-      "problemMatcher": []
-    },
-    {
       "label": "Auto Git Sync (Feature Branches)",
       "type": "shell",
-      "command": "AUTO_GIT_SYNC_BRANCH_REGEX='^feature/' npm run git:auto-sync",
+      "command": "npm run git:auto-sync",
       "isBackground": true,
       "runOptions": {
         "runOn": "folderOpen"
