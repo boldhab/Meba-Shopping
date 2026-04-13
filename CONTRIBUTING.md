@@ -168,7 +168,7 @@ The startup task runs automatically on project open, and the default script is b
 Notes:
 
 - This runs continuously until you stop it with `Ctrl+C`
-- Default commit message format is semantic, generated from staged paths and keywords (example: `auto: update checkout flow in client`)
+- Default commit message format is semantic, generated from staged paths and keywords (example: `update checkout flow in client`)
 - It pushes to `origin` on your current branch
 - By default, it only runs on `feature/*`, `hotfix/*`, and `bugfix/*` branches
 - It waits for a quiet period before committing (debounce)
@@ -176,7 +176,7 @@ Notes:
 - It detects domain keywords from changed paths (for example `auth`, `cart`, `checkout`) to produce more meaningful commit descriptions
 - Default keyword set is tuned for this repo domain: auth, users, cart, checkout, orders, products, categories, payments, shipping, inventory, reviews, admin, analytics, notifications, webhooks, and related terms
 - Startup logs show active branch, branch pattern, debounce settings, and ignore regex
-- You can tune behavior with environment variables: `AUTO_GIT_SYNC_INTERVAL` (seconds, default `3`), `AUTO_GIT_SYNC_QUIET_PERIOD` (seconds, default `3`), `AUTO_GIT_SYNC_MESSAGE_PREFIX` (default `auto:`), `AUTO_GIT_SYNC_BRANCH_REGEX` (only run on matching branch names), `AUTO_GIT_SYNC_IGNORE_REGEX` (skip matching files from commit), and `AUTO_GIT_SYNC_KEYWORDS` (comma-separated keyword list for semantic message generation)
+- You can tune behavior with environment variables: `AUTO_GIT_SYNC_INTERVAL` (seconds, default `3`), `AUTO_GIT_SYNC_QUIET_PERIOD` (seconds, default `3`), `AUTO_GIT_SYNC_MESSAGE_PREFIX` (default empty), `AUTO_GIT_SYNC_BRANCH_REGEX` (only run on matching branch names), `AUTO_GIT_SYNC_IGNORE_REGEX` (skip matching files from commit), and `AUTO_GIT_SYNC_KEYWORDS` (comma-separated keyword list for semantic message generation)
 
 Example:
 
