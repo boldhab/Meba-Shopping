@@ -13,7 +13,7 @@ cd "${REPO_ROOT}"
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 INTERVAL="${AUTO_GIT_SYNC_INTERVAL:-3}"
 QUIET_PERIOD="${AUTO_GIT_SYNC_QUIET_PERIOD:-3}"
-MESSAGE_PREFIX="${AUTO_GIT_SYNC_MESSAGE_PREFIX:-auto: sync changes}"
+MESSAGE_PREFIX="${AUTO_GIT_SYNC_MESSAGE_PREFIX:-auto:}"
 BRANCH_REGEX="${AUTO_GIT_SYNC_BRANCH_REGEX:-}"
 IGNORE_REGEX="${AUTO_GIT_SYNC_IGNORE_REGEX:-(^|/)(dist|build|coverage|\.next|out|tmp|temp)/|\.log$}"
 REQUIRE_FLAG="${AUTO_GIT_SYNC_REQUIRE_FLAG:-0}"
@@ -53,6 +53,72 @@ echo "Press Ctrl+C to stop."
 
 LAST_STATUS_SNAPSHOT=""
 LAST_CHANGE_EPOCH="0"
+
+build_commit_message() {
+  local add_count=0
+  local update_count=0
+  local delete_count=0
+  local rename_count=0
+  local -a areas=()
+  local -a summary_parts=()
+  local -a area_preview=()
+
+  add_area() {
+    local area="$1"
+    local existing
+    for existing in "${areas[@]}"; do
+      if [[ "${existing}" == "${area}" ]]; then
+        return
+      fi
+    done
+    areas+=("${area}")
+  }
+
+  while IFS=$'\t' read -r status path_old path_new; do
+    [[ -z "${status}" ]] && continue
+
+    case "${status:0:1}" in
+      A) ((add_count += 1)) ;;
+      M) ((update_count += 1)) ;;
+      D) ((delete_count += 1)) ;;
+      R) ((rename_count += 1)) ;;
+    esac
+
+    target_path="${path_new:-$path_old}"
+    area="${target_path%%/*}"
+    if [[ -z "${area}" ]] || [[ "${area}" == "${target_path}" ]]; then
+      area="root"
+    fi
+    add_area "${area}"
+  done < <(git diff --cached --name-status)
+
+  (( add_count > 0 )) && summary_parts+=("add ${add_count}")
+  (( update_count > 0 )) && summary_parts+=("update ${update_count}")
+  (( delete_count > 0 )) && summary_parts+=("delete ${delete_count}")
+  (( rename_count > 0 )) && summary_parts+=("rename ${rename_count}")
+
+  if [[ ${#summary_parts[@]} -eq 0 ]]; then
+    summary_parts+=("sync staged changes")
+  fi
+
+  area_preview=("${areas[@]:0:3}")
+  area_text=""
+  if [[ ${#area_preview[@]} -gt 0 ]]; then
+    area_text=" in ${area_preview[*]}"
+    area_text="${area_text// /, }"
+    area_text="${area_text/, / }"
+  fi
+
+  action_text="${summary_parts[*]}"
+  action_text="${action_text// /, }"
+  action_text="${action_text/, / }"
+
+  if [[ ${#areas[@]} -gt 3 ]]; then
+    echo "${MESSAGE_PREFIX} ${action_text}${area_text} and others"
+  else
+    echo "${MESSAGE_PREFIX} ${action_text}${area_text}"
+  fi
+}
 
 while true; do
   sleep "${INTERVAL}"
@@ -106,7 +172,7 @@ while true; do
     continue
   fi
 
-  COMMIT_MESSAGE="${MESSAGE_PREFIX} ($(date '+%Y-%m-%d %H:%M:%S'))"
+  COMMIT_MESSAGE="$(build_commit_message)"
 
   if git commit -m "${COMMIT_MESSAGE}"; then
     if git push origin "${BRANCH}"; then
