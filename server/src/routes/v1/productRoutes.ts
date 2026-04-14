@@ -3,4 +3,6 @@ import { productController } from "../../controllers/productController";
 
 export const productRoutes = Router();
 
-productRoutes.get("/", productController);
+productRoutes.get("/", productController.list);
+productRoutes.get("/:slug", productController.getBySlug);
+
