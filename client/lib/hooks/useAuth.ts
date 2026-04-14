@@ -1,3 +1,14 @@
+"use client";
+
+import { useContext } from "react";
+import { AuthContext } from "@/contexts/AuthContext";
+
 export function useAuth() {
-  return { user: null, isAuthenticated: false };
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth must be used inside AuthProvider.");
+  }
+
+  return context;
 }

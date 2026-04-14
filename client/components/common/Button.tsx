@@ -1,3 +1,11 @@
-export function Button({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <button className="button">{children}</button>;
+import type { ButtonHTMLAttributes } from "react";
+
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement>;
+
+export function Button({ children, className, ...props }: Readonly<ButtonProps>) {
+  return (
+    <button className={className ? `button ${className}` : "button"} {...props}>
+      {children}
+    </button>
+  );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
+import { Providers } from "./providers";
 import "@/styles/globals.css";
 import "@/styles/variables.css";
 
@@ -13,11 +14,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
-        <div className="site-shell">
-          <Navbar />
-          <main className="site-main">{children}</main>
-          <Footer />
-        </div>
+        <Providers>
+          <div className="site-shell">
+            <Navbar />
+            <main className="site-main">{children}</main>
+            <Footer />
+          </div>
+        </Providers>
       </body>
     </html>
   );
