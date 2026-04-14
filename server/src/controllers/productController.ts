@@ -15,7 +15,7 @@ export const productController = {
   async getBySlug(request: Request, response: Response, next: NextFunction) {
     try {
       const { slug } = request.params;
-      const product = await productService.getProductBySlug(slug);
+      const product = await productService.getProductBySlug(slug as string);
       if (!product) {
         return response.status(404).json({ message: "Product not found" });
       }
