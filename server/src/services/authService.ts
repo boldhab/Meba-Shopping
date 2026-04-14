@@ -11,6 +11,7 @@ type RegisterInput = {
   name?: string;
   email: string;
   password: string;
+  verificationCode: string;
   role?: UserRole;
 };
 
@@ -24,15 +25,8 @@ type GoogleCallbackInput = {
   state: string;
 };
 
-type PhoneOtpRequestInput = {
-  phoneNumber: string;
-  name?: string;
-};
-
-type PhoneOtpVerifyInput = {
-  phoneNumber: string;
-  otpCode: string;
-  name?: string;
+type EmailVerificationRequestInput = {
+  email: string;
 };
 
 type GoogleTokenResponse = {
@@ -56,32 +50,14 @@ type AuthUserRecord = {
 } & Record<string, unknown>;
 
 const oauthStateStore = new Map<string, number>();
-const phoneOtpStore = new Map<string, { otpCode: string; expiresAt: number; name?: string }>();
+const emailVerificationStore = new Map<string, { code: string; expiresAt: number }>();
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
-const PHONE_OTP_TTL_MS = 5 * 60 * 1000;
+const EMAIL_VERIFICATION_TTL_MS = 10 * 60 * 1000;
 
 function sanitizeUser(user: { passwordHash: string } & Record<string, unknown>) {
   const { passwordHash: _passwordHash, ...safeUser } = user;
   return safeUser;
-}
-
-function normalizePhoneNumber(phoneNumber: string) {
-  return phoneNumber.startsWith("+") ? phoneNumber : `+${phoneNumber}`;
-}
-
-function phoneNumberToEmail(phoneNumber: string) {
-  return `${phoneNumber.replace(/[^\d]/g, "")}@phone.meba.local`;
-}
-
-function purgeExpiredOtp() {
-  const now = Date.now();
-
-  for (const [key, value] of phoneOtpStore.entries()) {
-    if (value.expiresAt <= now) {
-      phoneOtpStore.delete(key);
-    }
-  }
 }
 
 function purgeExpiredOauthState() {
@@ -90,6 +66,16 @@ function purgeExpiredOauthState() {
   for (const [key, expiresAt] of oauthStateStore.entries()) {
     if (expiresAt <= now) {
       oauthStateStore.delete(key);
+    }
+  }
+}
+
+function purgeExpiredEmailVerificationCode() {
+  const now = Date.now();
+
+  for (const [key, value] of emailVerificationStore.entries()) {
+    if (value.expiresAt <= now) {
+      emailVerificationStore.delete(key);
     }
   }
 }
@@ -165,17 +151,56 @@ async function getOrCreateUserByEmail(email: string, name?: string) {
 }
 
 export const authService = {
-  async register(input: RegisterInput) {
-    const existingUser = await userRepository.findByEmail(input.email);
+  async requestEmailVerification(input: EmailVerificationRequestInput) {
+    purgeExpiredEmailVerificationCode();
+
+    const normalizedEmail = input.email.toLowerCase();
+    const existingUser = await userRepository.findByEmail(normalizedEmail);
 
     if (existingUser) {
       throw new ApiError(409, "An account with that email already exists.");
     }
 
+    const code = `${Math.floor(100000 + Math.random() * 900000)}`;
+
+    emailVerificationStore.set(normalizedEmail, {
+      code,
+      expiresAt: Date.now() + EMAIL_VERIFICATION_TTL_MS
+    });
+
+    return {
+      message: "Verification code sent to your email.",
+      expiresInSeconds: Math.floor(EMAIL_VERIFICATION_TTL_MS / 1000),
+      devVerificationCode: env.isProduction ? undefined : code
+    };
+  },
+
+  async register(input: RegisterInput) {
+    purgeExpiredEmailVerificationCode();
+
+    const normalizedEmail = input.email.toLowerCase();
+    const existingUser = await userRepository.findByEmail(normalizedEmail);
+
+    if (existingUser) {
+      throw new ApiError(409, "An account with that email already exists.");
+    }
+
+    const verification = emailVerificationStore.get(normalizedEmail);
+
+    if (!verification || verification.expiresAt < Date.now()) {
+      throw new ApiError(401, "Verification code has expired. Please request a new one.");
+    }
+
+    if (verification.code !== input.verificationCode.trim()) {
+      throw new ApiError(401, "Invalid verification code.");
+    }
+
+    emailVerificationStore.delete(normalizedEmail);
+
     const passwordHash = await hashPassword(input.password);
 
     const user = await userRepository.create({
-      email: input.email,
+      email: normalizedEmail,
       name: input.name,
       passwordHash,
       role: input.role ?? "CUSTOMER"
@@ -248,49 +273,6 @@ export const authService = {
     clientRedirect.searchParams.set("provider", "google");
 
     return clientRedirect.toString();
-  },
-
-  requestPhoneOtp(input: PhoneOtpRequestInput) {
-    purgeExpiredOtp();
-
-    const normalizedPhone = normalizePhoneNumber(input.phoneNumber);
-    const otpCode = `${Math.floor(100000 + Math.random() * 900000)}`;
-    const expiresAt = Date.now() + PHONE_OTP_TTL_MS;
-
-    phoneOtpStore.set(normalizedPhone, {
-      otpCode,
-      expiresAt,
-      name: input.name
-    });
-
-    return {
-      message: "OTP sent successfully.",
-      expiresInSeconds: Math.floor(PHONE_OTP_TTL_MS / 1000),
-      devOtpCode: env.isProduction ? undefined : otpCode
-    };
-  },
-
-  async verifyPhoneOtp(input: PhoneOtpVerifyInput) {
-    purgeExpiredOtp();
-
-    const normalizedPhone = normalizePhoneNumber(input.phoneNumber);
-    const otp = phoneOtpStore.get(normalizedPhone);
-
-    if (!otp || otp.expiresAt < Date.now()) {
-      throw new ApiError(401, "OTP code has expired. Please request a new one.");
-    }
-
-    if (otp.otpCode !== input.otpCode) {
-      throw new ApiError(401, "Invalid OTP code.");
-    }
-
-    phoneOtpStore.delete(normalizedPhone);
-
-    const emailAlias = phoneNumberToEmail(normalizedPhone);
-    const name = input.name ?? otp.name;
-    const user = await getOrCreateUserByEmail(emailAlias, name);
-
-    return createTokenResponse(user as AuthUserRecord);
   },
 
   async getCurrentUser(userId: string) {

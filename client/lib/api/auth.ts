@@ -23,23 +23,17 @@ type RegisterInput = {
   name?: string;
   email: string;
   password: string;
+  verificationCode: string;
 };
 
-type PhoneOtpRequestInput = {
-  phoneNumber: string;
-  name?: string;
+type RequestEmailVerificationInput = {
+  email: string;
 };
 
-type PhoneOtpVerifyInput = {
-  phoneNumber: string;
-  otpCode: string;
-  name?: string;
-};
-
-export type PhoneOtpRequestResponse = {
+export type RequestEmailVerificationResponse = {
   message: string;
   expiresInSeconds: number;
-  devOtpCode?: string;
+  devVerificationCode?: string;
 };
 
 export async function login(input: LoginInput): Promise<AuthResponse> {
@@ -56,6 +50,13 @@ export async function register(input: RegisterInput): Promise<AuthResponse> {
   });
 }
 
+export async function requestEmailVerification(input: RequestEmailVerificationInput): Promise<RequestEmailVerificationResponse> {
+  return requestApi<RequestEmailVerificationResponse>("/auth/email/request-verification", {
+    method: "POST",
+    body: input
+  });
+}
+
 export async function getCurrentUser(token: string): Promise<{ user: AuthUser }> {
   return requestApi<{ user: AuthUser }>("/auth/me", {
     token
@@ -64,18 +65,4 @@ export async function getCurrentUser(token: string): Promise<{ user: AuthUser }>
 
 export function getGoogleAuthStartUrl() {
   return `${apiClient.baseUrl}/auth/google/start`;
-}
-
-export async function requestPhoneOtp(input: PhoneOtpRequestInput): Promise<PhoneOtpRequestResponse> {
-  return requestApi<PhoneOtpRequestResponse>("/auth/phone/request-otp", {
-    method: "POST",
-    body: input
-  });
-}
-
-export async function verifyPhoneOtp(input: PhoneOtpVerifyInput): Promise<AuthResponse> {
-  return requestApi<AuthResponse>("/auth/phone/verify", {
-    method: "POST",
-    body: input
-  });
 }

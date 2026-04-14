@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { getGoogleAuthStartUrl, requestPhoneOtp, verifyPhoneOtp } from "@/lib/api/auth";
+import { getGoogleAuthStartUrl, requestEmailVerification } from "@/lib/api/auth";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -14,11 +14,10 @@ export function RegisterForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [phoneOtp, setPhoneOtp] = useState("");
-  const [phoneOtpMessage, setPhoneOtpMessage] = useState<string | null>(null);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPhoneSubmitting, setIsPhoneSubmitting] = useState(false);
+  const [isRequestingVerification, setIsRequestingVerification] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -27,7 +26,8 @@ export function RegisterForm() {
     setIsSubmitting(true);
 
     try {
-      await register({ name, email, password });
+      const normalizedName = name.trim();
+      await register({ name: normalizedName || undefined, email, password, verificationCode });
       router.push("/account");
     } catch (submitError) {
       if (submitError instanceof Error) {
@@ -40,41 +40,31 @@ export function RegisterForm() {
     }
   };
 
+  const handleRequestVerification = async () => {
+    setError(null);
+    setVerificationMessage(null);
+    setIsRequestingVerification(true);
+
+    try {
+      const response = await requestEmailVerification({ email });
+      setVerificationMessage(
+        response.devVerificationCode
+          ? `Verification code sent. Dev code: ${response.devVerificationCode}`
+          : `Verification code sent. It expires in ${response.expiresInSeconds} seconds.`
+      );
+    } catch (requestError) {
+      if (requestError instanceof Error) {
+        setError(requestError.message);
+      } else {
+        setError("Unable to send verification code right now.");
+      }
+    } finally {
+      setIsRequestingVerification(false);
+    }
+  };
+
   const handleGoogleSignup = () => {
     window.location.href = getGoogleAuthStartUrl();
-  };
-
-  const handlePhoneOtpRequest = async () => {
-    setError(null);
-    setPhoneOtpMessage(null);
-    setIsPhoneSubmitting(true);
-
-    try {
-      const response = await requestPhoneOtp({ phoneNumber, name });
-      setPhoneOtpMessage(
-        response.devOtpCode
-          ? `OTP sent. Dev code: ${response.devOtpCode}`
-          : `OTP sent. It expires in ${response.expiresInSeconds} seconds.`
-      );
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to request OTP right now.");
-    } finally {
-      setIsPhoneSubmitting(false);
-    }
-  };
-
-  const handlePhoneOtpVerify = async () => {
-    setError(null);
-    setIsPhoneSubmitting(true);
-
-    try {
-      await verifyPhoneOtp({ phoneNumber, otpCode: phoneOtp, name });
-      router.push("/account");
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to verify OTP right now.");
-    } finally {
-      setIsPhoneSubmitting(false);
-    }
   };
 
   return (
@@ -115,8 +105,24 @@ export function RegisterForm() {
             minLength={8}
           />
         </label>
+        <label className="label-stack" htmlFor="verification-code">
+          Verification code
+          <Input
+            id="verification-code"
+            type="text"
+            inputMode="numeric"
+            value={verificationCode}
+            onChange={(event) => setVerificationCode(event.target.value)}
+            placeholder="123456"
+            required
+          />
+        </label>
+        <Button type="button" className="button--secondary" disabled={isRequestingVerification || !email} onClick={handleRequestVerification}>
+          {isRequestingVerification ? "Sending code..." : "Send verification code"}
+        </Button>
+        {verificationMessage ? <p className="form-success">{verificationMessage}</p> : null}
         {error ? <p className="form-error">{error}</p> : null}
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || !verificationCode}>
           {isSubmitting ? "Creating account..." : "Create account"}
         </Button>
       </form>
@@ -125,37 +131,6 @@ export function RegisterForm() {
         <Button type="button" className="button--secondary" onClick={handleGoogleSignup}>
           Sign up with Google
         </Button>
-        <label className="label-stack" htmlFor="phone-signup">
-          Phone number
-          <Input
-            id="phone-signup"
-            type="tel"
-            value={phoneNumber}
-            onChange={(event) => setPhoneNumber(event.target.value)}
-            autoComplete="tel"
-            placeholder="+15551234567"
-          />
-        </label>
-        <label className="label-stack" htmlFor="phone-signup-otp">
-          OTP code
-          <Input
-            id="phone-signup-otp"
-            type="text"
-            inputMode="numeric"
-            value={phoneOtp}
-            onChange={(event) => setPhoneOtp(event.target.value)}
-            placeholder="123456"
-          />
-        </label>
-        <div className="hero__actions">
-          <Button type="button" className="button--secondary" disabled={isPhoneSubmitting || !phoneNumber} onClick={handlePhoneOtpRequest}>
-            Request OTP
-          </Button>
-          <Button type="button" disabled={isPhoneSubmitting || !phoneNumber || !phoneOtp} onClick={handlePhoneOtpVerify}>
-            Verify OTP
-          </Button>
-        </div>
-        {phoneOtpMessage ? <p className="form-success">{phoneOtpMessage}</p> : null}
       </div>
     </section>
   );

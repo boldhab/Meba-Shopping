@@ -3,6 +3,15 @@ import { authService } from "../services/authService";
 import { ApiError } from "../utils/apiError";
 
 export const authController = {
+  async requestEmailVerification(request: Request, response: Response, next: NextFunction) {
+    try {
+      const result = await authService.requestEmailVerification(request.body);
+      response.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async register(request: Request, response: Response, next: NextFunction) {
     try {
       const result = await authService.register(request.body);
@@ -41,24 +50,6 @@ export const authController = {
 
       const redirectUrl = await authService.googleCallback({ code, state });
       response.redirect(redirectUrl);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async requestPhoneOtp(request: Request, response: Response, next: NextFunction) {
-    try {
-      const result = authService.requestPhoneOtp(request.body);
-      response.status(200).json(result);
-    } catch (error) {
-      next(error);
-    }
-  },
-
-  async verifyPhoneOtp(request: Request, response: Response, next: NextFunction) {
-    try {
-      const result = await authService.verifyPhoneOtp(request.body);
-      response.status(200).json(result);
     } catch (error) {
       next(error);
     }

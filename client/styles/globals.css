@@ -146,6 +146,22 @@ a {
   color: #1d6b3a;
 }
 
+.auth-meta-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.auth-meta-text {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.auth-meta-text a {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
 .auth-divider {
   height: 1px;
   margin: 1.5rem 0;
