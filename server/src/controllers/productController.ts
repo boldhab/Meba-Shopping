@@ -1,5 +1,27 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
+import { productService } from "../services/productService";
 
-export function productController(_request: Request, response: Response) {
-  response.json({ resource: "products" });
-}
+export const productController = {
+  async list(request: Request, response: Response, next: NextFunction) {
+    try {
+      const { categoryId, search, page, limit } = request.query as any;
+      const result = await productService.getAllProducts({ categoryId, search, page, limit });
+      response.json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getBySlug(request: Request, response: Response, next: NextFunction) {
+    try {
+      const { slug } = request.params;
+      const product = await productService.getProductBySlug(slug);
+      if (!product) {
+        return response.status(404).json({ message: "Product not found" });
+      }
+      response.json(product);
+    } catch (error) {
+      next(error);
+    }
+  },
+};
