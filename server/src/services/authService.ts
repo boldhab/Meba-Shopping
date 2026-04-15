@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { mailer } from "../config/mailer";
 import { userRepository } from "../repositories/userRepository";
 import { env } from "../config/env";
 import { ApiError } from "../utils/apiError";
@@ -49,11 +50,20 @@ type AuthUserRecord = {
   passwordHash: string;
 } & Record<string, unknown>;
 
+type EmailVerificationRecord = {
+  code: string;
+  expiresAt: number;
+  sentAt: number;
+  attemptsLeft: number;
+};
+
 const oauthStateStore = new Map<string, number>();
-const emailVerificationStore = new Map<string, { code: string; expiresAt: number }>();
+const emailVerificationStore = new Map<string, EmailVerificationRecord>();
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const EMAIL_VERIFICATION_TTL_MS = 10 * 60 * 1000;
+const EMAIL_VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
+const EMAIL_VERIFICATION_MAX_ATTEMPTS = 5;
 
 function sanitizeUser(user: { passwordHash: string } & Record<string, unknown>) {
   const { passwordHash: _passwordHash, ...safeUser } = user;
@@ -161,12 +171,35 @@ export const authService = {
       throw new ApiError(409, "An account with that email already exists.");
     }
 
+    const now = Date.now();
+    const existingVerification = emailVerificationStore.get(normalizedEmail);
+
+    if (existingVerification) {
+      const elapsedMs = now - existingVerification.sentAt;
+
+      if (elapsedMs < EMAIL_VERIFICATION_RESEND_COOLDOWN_MS) {
+        throw new ApiError(
+          429,
+          `Please wait ${Math.ceil((EMAIL_VERIFICATION_RESEND_COOLDOWN_MS - elapsedMs) / 1000)} seconds before requesting another code.`
+        );
+      }
+    }
+
     const code = `${Math.floor(100000 + Math.random() * 900000)}`;
 
     emailVerificationStore.set(normalizedEmail, {
       code,
-      expiresAt: Date.now() + EMAIL_VERIFICATION_TTL_MS
+      expiresAt: now + EMAIL_VERIFICATION_TTL_MS,
+      sentAt: now,
+      attemptsLeft: EMAIL_VERIFICATION_MAX_ATTEMPTS
     });
+
+    try {
+      await mailer.sendVerificationCode(normalizedEmail, code, Math.floor(EMAIL_VERIFICATION_TTL_MS / 60000));
+    } catch (error) {
+      emailVerificationStore.delete(normalizedEmail);
+      throw new ApiError(500, error instanceof Error ? error.message : "Failed to send verification email.");
+    }
 
     return {
       message: "Verification code sent to your email.",
@@ -191,7 +224,15 @@ export const authService = {
       throw new ApiError(401, "Verification code has expired. Please request a new one.");
     }
 
+    if (verification.attemptsLeft <= 0) {
+      emailVerificationStore.delete(normalizedEmail);
+      throw new ApiError(429, "Too many invalid verification attempts. Please request a new code.");
+    }
+
     if (verification.code !== input.verificationCode.trim()) {
+      verification.attemptsLeft -= 1;
+      emailVerificationStore.set(normalizedEmail, verification);
+
       throw new ApiError(401, "Invalid verification code.");
     }
 

@@ -3,6 +3,14 @@ import { z } from "zod";
 
 dotenv.config();
 
+const emptyToUndefined = (value: unknown) => {
+  if (typeof value === "string" && value.trim() === "") {
+    return undefined;
+  }
+
+  return value;
+};
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
@@ -10,6 +18,12 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters long."),
   JWT_EXPIRES_IN: z.string().default("7d"),
+  MAIL_FROM: z.preprocess(emptyToUndefined, z.string().min(1).default("no-reply@meba.local")),
+  SMTP_HOST: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_SECURE: z.stringbool().default(false),
+  SMTP_USER: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  SMTP_PASS: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   GOOGLE_REDIRECT_URI: z.url().optional(),
@@ -33,6 +47,12 @@ export const env = {
   databaseUrl: values.DATABASE_URL,
   jwtSecret: values.JWT_SECRET,
   jwtExpiresIn: values.JWT_EXPIRES_IN,
+  mailFrom: values.MAIL_FROM,
+  smtpHost: values.SMTP_HOST,
+  smtpPort: values.SMTP_PORT,
+  smtpSecure: values.SMTP_SECURE,
+  smtpUser: values.SMTP_USER,
+  smtpPass: values.SMTP_PASS,
   googleClientId: values.GOOGLE_CLIENT_ID,
   googleClientSecret: values.GOOGLE_CLIENT_SECRET,
   googleRedirectUri: values.GOOGLE_REDIRECT_URI,
