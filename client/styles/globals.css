@@ -124,6 +124,118 @@ a {
   margin: 0 auto;
 }
 
+.auth-card--login {
+  background:
+    radial-gradient(circle at top, rgba(14, 122, 83, 0.08), transparent 42%),
+    rgba(255, 253, 248, 0.94);
+}
+
+.auth-login__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 1.25rem;
+}
+
+.auth-login__header h1 {
+  margin: 0;
+}
+
+.auth-login__header p,
+.auth-login__footer {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.auth-login__badge {
+  width: 3rem;
+  height: 3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--color-accent), #0a5f41);
+  color: #fff;
+  box-shadow: 0 14px 30px rgba(14, 122, 83, 0.2);
+}
+
+.auth-login__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 14px;
+  background: rgba(165, 34, 34, 0.08);
+  color: #8f1c1c;
+  margin-bottom: 1rem;
+}
+
+.auth-login__field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-login__field-icon {
+  position: absolute;
+  left: 0.9rem;
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
+.auth-login__field .input {
+  padding-left: 2.4rem;
+  padding-right: 2.75rem;
+}
+
+.auth-login__password-input {
+  padding-right: 3rem !important;
+}
+
+.auth-login__toggle {
+  position: absolute;
+  right: 0.8rem;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-login__toggle:hover {
+  color: var(--color-text);
+}
+
+.auth-login__meta-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.auth-login__meta-links a {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.auth-login__google {
+  gap: 0.5rem;
+}
+
+.auth-login__footer {
+  margin-top: 1.25rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.auth-login__footer a {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
 .form-stack,
 .label-stack {
   display: flex;
