@@ -36,6 +36,8 @@ export async function getProducts(params?: {
   search?: string;
   minPrice?: string;
   maxPrice?: string;
+  page?: string;
+  limit?: string;
 }): Promise<{ items: Product[]; total: number }> {
   try {
     const searchParams = new URLSearchParams();
@@ -43,6 +45,8 @@ export async function getProducts(params?: {
     if (params?.search) searchParams.append("search", params.search);
     if (params?.minPrice) searchParams.append("minPrice", params.minPrice);
     if (params?.maxPrice) searchParams.append("maxPrice", params.maxPrice);
+    if (params?.page) searchParams.append("page", params.page);
+    if (params?.limit) searchParams.append("limit", params.limit);
 
     const queryString = searchParams.toString();
     const url = `${apiClient.baseUrl}/products${queryString ? `?${queryString}` : ""}`;
