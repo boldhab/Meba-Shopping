@@ -23,3 +23,13 @@ export const googleCallbackValidator = z.object({
   code: z.string().min(1),
   state: z.string().min(1)
 });
+
+export const requestPasswordResetValidator = z.object({
+  email: z.email().transform((value) => value.toLowerCase())
+});
+
+export const confirmPasswordResetValidator = z.object({
+  email: z.email().transform((value) => value.toLowerCase()),
+  code: z.string().trim().regex(/^\d{6}$/, "Reset code must be 6 digits."),
+  newPassword: z.string().min(8).max(128)
+});

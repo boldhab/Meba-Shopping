@@ -59,11 +59,15 @@ type EmailVerificationRecord = {
 
 const oauthStateStore = new Map<string, number>();
 const emailVerificationStore = new Map<string, EmailVerificationRecord>();
+const passwordResetStore = new Map<string, EmailVerificationRecord>();
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const EMAIL_VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const EMAIL_VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
 const EMAIL_VERIFICATION_MAX_ATTEMPTS = 5;
+const PASSWORD_RESET_TTL_MS = 10 * 60 * 1000;
+const PASSWORD_RESET_RESEND_COOLDOWN_MS = 60 * 1000;
+const PASSWORD_RESET_MAX_ATTEMPTS = 5;
 
 function sanitizeUser(user: { passwordHash: string } & Record<string, unknown>) {
   const { passwordHash: _passwordHash, ...safeUser } = user;
@@ -324,5 +328,89 @@ export const authService = {
     }
 
     return sanitizeUser(user);
+  },
+
+  async requestPasswordReset(input: { email: string }) {
+    const normalizedEmail = input.email.toLowerCase();
+
+    // Purge expired entries
+    const now = Date.now();
+    for (const [key, value] of passwordResetStore.entries()) {
+      if (value.expiresAt <= now) passwordResetStore.delete(key);
+    }
+
+    const user = await userRepository.findByEmail(normalizedEmail);
+
+    // Always respond the same way to avoid user-enumeration
+    if (!user) {
+      return { message: "If that email is registered, a reset code has been sent." };
+    }
+
+    const existing = passwordResetStore.get(normalizedEmail);
+
+    if (existing) {
+      const elapsed = now - existing.sentAt;
+      if (elapsed < PASSWORD_RESET_RESEND_COOLDOWN_MS) {
+        throw new ApiError(
+          429,
+          `Please wait ${Math.ceil((PASSWORD_RESET_RESEND_COOLDOWN_MS - elapsed) / 1000)} seconds before requesting another code.`
+        );
+      }
+    }
+
+    const code = `${Math.floor(100000 + Math.random() * 900000)}`;
+
+    passwordResetStore.set(normalizedEmail, {
+      code,
+      expiresAt: now + PASSWORD_RESET_TTL_MS,
+      sentAt: now,
+      attemptsLeft: PASSWORD_RESET_MAX_ATTEMPTS
+    });
+
+    try {
+      await mailer.sendPasswordResetCode(normalizedEmail, code, Math.floor(PASSWORD_RESET_TTL_MS / 60000));
+    } catch (error) {
+      passwordResetStore.delete(normalizedEmail);
+      throw new ApiError(500, error instanceof Error ? error.message : "Failed to send password reset email.");
+    }
+
+    return {
+      message: "If that email is registered, a reset code has been sent.",
+      devResetCode: env.isProduction ? undefined : code
+    };
+  },
+
+  async confirmPasswordReset(input: { email: string; code: string; newPassword: string }) {
+    const normalizedEmail = input.email.toLowerCase();
+
+    const record = passwordResetStore.get(normalizedEmail);
+
+    if (!record || record.expiresAt < Date.now()) {
+      throw new ApiError(401, "Reset code has expired. Please request a new one.");
+    }
+
+    if (record.attemptsLeft <= 0) {
+      passwordResetStore.delete(normalizedEmail);
+      throw new ApiError(429, "Too many invalid attempts. Please request a new code.");
+    }
+
+    if (record.code !== input.code.trim()) {
+      record.attemptsLeft -= 1;
+      passwordResetStore.set(normalizedEmail, record);
+      throw new ApiError(401, "Invalid reset code.");
+    }
+
+    passwordResetStore.delete(normalizedEmail);
+
+    const user = await userRepository.findByEmail(normalizedEmail);
+
+    if (!user) {
+      throw new ApiError(404, "User not found.");
+    }
+
+    const passwordHash = await hashPassword(input.newPassword);
+    await userRepository.updatePassword(user.id, passwordHash);
+
+    return { message: "Password updated successfully. You can now log in with your new password." };
   }
 };
