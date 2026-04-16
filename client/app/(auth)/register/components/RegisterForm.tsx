@@ -46,7 +46,7 @@ export function RegisterForm() {
     setIsRequestingVerification(true);
 
     try {
-      const response = await requestEmailVerification({ email });
+      await requestEmailVerification({ email });
       setVerificationMessage("Verification code sent.");
     } catch (requestError) {
       if (requestError instanceof Error) {
