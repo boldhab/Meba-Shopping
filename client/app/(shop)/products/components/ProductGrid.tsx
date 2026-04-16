@@ -4,14 +4,14 @@ import { Product } from "@/lib/api/products";
 export function ProductGrid({ products }: { products: Product[] }) {
   if (products.length === 0) {
     return (
-      <div className="py-12 text-center text-zinc-500">
+      <div className="state-card">
         <p>No products found matching your criteria.</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="products-grid">
       {products.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}

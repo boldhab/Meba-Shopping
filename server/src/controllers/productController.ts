@@ -4,8 +4,8 @@ import { productService } from "../services/productService";
 export const productController = {
   async list(request: Request, response: Response, next: NextFunction) {
     try {
-      const { categoryId, search, page, limit } = request.query as any;
-      const result = await productService.getAllProducts({ categoryId, search, page, limit });
+      const { categoryId, search, minPrice, maxPrice, page, limit } = request.query as any;
+      const result = await productService.getAllProducts({ categoryId, search, minPrice, maxPrice, page, limit });
       response.json(result);
     } catch (error) {
       next(error);

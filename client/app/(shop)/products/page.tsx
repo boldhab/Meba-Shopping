@@ -1,35 +1,50 @@
 import { ProductFilters } from "./components/ProductFilters";
 import { ProductGrid } from "./components/ProductGrid";
 import { Pagination } from "./components/Pagination";
-import { getProducts } from "@/lib/api/products";
+import { getCategories, getProducts } from "@/lib/api/products";
+
+type ProductSearchParams = {
+  search?: string;
+  categoryId?: string;
+  minPrice?: string;
+  maxPrice?: string;
+};
 
 export default async function ProductsPage(props: {
-  searchParams?: Promise<{ search?: string; categoryId?: string }>;
+  searchParams?: Promise<ProductSearchParams>;
 }) {
   const searchParams = await props.searchParams;
-  const p = await getProducts({ search: searchParams?.search, categoryId: searchParams?.categoryId });
+  const filters: ProductSearchParams = {
+    search: searchParams?.search?.trim() || undefined,
+    categoryId: searchParams?.categoryId || undefined,
+    minPrice: searchParams?.minPrice || undefined,
+    maxPrice: searchParams?.maxPrice || undefined,
+  };
+
+  const [productsResult, categories] = await Promise.all([getProducts(filters), getCategories()]);
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 mb-2">
-          Products
-        </h1>
-        <p className="text-lg text-zinc-500">
-          Find exactly what you are looking for in our fresh and organic selections.
+    <section className="page-stack products-page">
+      <div>
+        <h1>Products</h1>
+        <p className="products-page__description">
+          Browse the catalog and narrow results by category, keyword, and price range.
+        </p>
+        <p className="products-page__meta">
+          Showing {productsResult.items.length} of {productsResult.total} product
+          {productsResult.total === 1 ? "" : "s"}
         </p>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
-        <div className="w-full lg:w-64 shrink-0">
-          <ProductFilters />
+      <div className="products-layout">
+        <div>
+          <ProductFilters categories={categories} values={filters} />
         </div>
-        <div className="flex-1">
-          <ProductGrid products={p.items} />
-          {p.total > 20 && <Pagination />}
+        <div className="products-layout__content">
+          <ProductGrid products={productsResult.items} />
+          {productsResult.total > 20 && <Pagination />}
         </div>
       </div>
     </section>
   );
 }
-
