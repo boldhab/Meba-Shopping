@@ -308,7 +308,7 @@ export function Navbar() {
 
               <Link
                 href="/cart"
-                className="relative inline-flex h-10 items-center gap-2 rounded-full bg-gradient-to-r from-slate-900 to-slate-800 px-4 text-sm font-semibold text-white shadow-md hover:shadow-lg transition-all"
+                className="relative inline-flex h-10 items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-4 text-sm font-semibold text-white shadow-md shadow-orange-200 hover:shadow-lg transition-all"
               >
                 <ShoppingCart className="h-4 w-4" />
                 Cart
