@@ -47,11 +47,7 @@ export function RegisterForm() {
 
     try {
       const response = await requestEmailVerification({ email });
-      setVerificationMessage(
-        response.devVerificationCode
-          ? `Verification code sent. Dev code: ${response.devVerificationCode}`
-          : `Verification code sent. It expires in ${response.expiresInSeconds} seconds.`
-      );
+      setVerificationMessage("Verification code sent.");
     } catch (requestError) {
       if (requestError instanceof Error) {
         setError(requestError.message);
