@@ -8,6 +8,7 @@ type ProductSearchParams = {
   categoryId?: string;
   minPrice?: string;
   maxPrice?: string;
+  page?: string;
 };
 
 export default async function ProductsPage(props: {
@@ -19,6 +20,7 @@ export default async function ProductsPage(props: {
     categoryId: searchParams?.categoryId || undefined,
     minPrice: searchParams?.minPrice || undefined,
     maxPrice: searchParams?.maxPrice || undefined,
+    page: searchParams?.page || undefined,
   };
 
   const [productsResult, categories] = await Promise.all([getProducts(filters), getCategories()]);
@@ -42,7 +44,12 @@ export default async function ProductsPage(props: {
         </div>
         <div className="products-layout__content">
           <ProductGrid products={productsResult.items} />
-          {productsResult.total > 20 && <Pagination />}
+          {productsResult.total > 20 && (
+            <Pagination
+              currentPage={parseInt(filters.page || "1")}
+              totalPages={Math.ceil(productsResult.total / 20)}
+            />
+          )}
         </div>
       </div>
     </section>
