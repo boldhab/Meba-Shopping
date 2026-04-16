@@ -57,6 +57,25 @@ export async function requestEmailVerification(input: RequestEmailVerificationIn
   });
 }
 
+export type RequestPasswordResetResponse = {
+  message: string;
+  devResetCode?: string;
+};
+
+export async function requestPasswordReset(input: { email: string }): Promise<RequestPasswordResetResponse> {
+  return requestApi<RequestPasswordResetResponse>("/auth/password-reset/request", {
+    method: "POST",
+    body: input
+  });
+}
+
+export async function confirmPasswordReset(input: { email: string; code: string; newPassword: string }): Promise<{ message: string }> {
+  return requestApi<{ message: string}>("/auth/password-reset/confirm", {
+    method: "POST",
+    body: input
+  });
+}
+
 export async function getCurrentUser(token: string): Promise<{ user: AuthUser }> {
   return requestApi<{ user: AuthUser }>("/auth/me", {
     token
