@@ -1,10 +1,27 @@
 import { ProductReview } from "@/lib/api/products";
 import { formatDate } from "@/lib/utils/formatDate";
 
-export function ReviewSection({ reviews }: { reviews: ProductReview[] }) {
+export function ReviewSection({
+  reviews,
+  averageRating,
+}: {
+  reviews: ProductReview[];
+  averageRating: number | null;
+}) {
   return (
     <section className="review-section">
-      <h2>Customer Reviews ({reviews.length})</h2>
+      <div className="review-section__header">
+        <div>
+          <p className="review-section__eyebrow">Social proof</p>
+          <h2>Customer Reviews ({reviews.length})</h2>
+        </div>
+        {typeof averageRating === "number" && (
+          <div className="review-section__summary">
+            <strong>{averageRating.toFixed(1)} / 5</strong>
+            <span>Average rating from verified buyers</span>
+          </div>
+        )}
+      </div>
 
       {reviews.length === 0 ? (
         <p className="review-section__empty">No reviews yet. Be the first to share your experience.</p>
