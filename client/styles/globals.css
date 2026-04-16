@@ -1024,6 +1024,11 @@ a {
   cursor: pointer;
 }
 
+.review-form__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .review-form__message {
   margin: 0;
   color: var(--color-muted);

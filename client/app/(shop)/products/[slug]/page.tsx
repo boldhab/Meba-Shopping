@@ -82,7 +82,7 @@ export default async function ProductDetailPage(props: { params: Promise<{ slug:
         </section>
 
         <div id="reviews" className="product-reviews">
-          <ReviewSection reviews={reviews} averageRating={averageRating} />
+          <ReviewSection productId={product.id} reviews={reviews} averageRating={averageRating} />
         </div>
       </div>
     </section>

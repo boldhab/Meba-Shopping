@@ -2,19 +2,25 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { ProductReview } from "@/lib/api/products";
+import { createReview } from "@/lib/api/reviews";
+import { useAuth } from "@/lib/hooks/useAuth";
 import { formatDate } from "@/lib/utils/formatDate";
 
 export function ReviewSection({
+  productId,
   reviews,
   averageRating,
 }: {
+  productId: string;
   reviews: ProductReview[];
   averageRating: number | null;
 }) {
+  const { token, isAuthenticated } = useAuth();
   const [allReviews, setAllReviews] = useState<ProductReview[]>(reviews);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const average = useMemo(() => {
     if (allReviews.length === 0) return averageRating;
@@ -22,30 +28,43 @@ export function ReviewSection({
     return total / allReviews.length;
   }, [allReviews, averageRating]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextComment = comment.trim();
+
+    if (!isAuthenticated || !token) {
+      setMessage("Please sign in to submit a review.");
+      return;
+    }
 
     if (!nextComment) {
       setMessage("Please write a short comment.");
       return;
     }
 
-    const newReview: ProductReview = {
-      id: `local-${Date.now()}`,
-      rating,
-      comment: nextComment,
-      createdAt: new Date().toISOString(),
-      user: {
-        id: "local-user",
-        name: "You",
-      },
-    };
+    setIsSubmitting(true);
 
-    setAllReviews((current) => [newReview, ...current]);
-    setComment("");
-    setRating(5);
-    setMessage("Thanks! Your review was added.");
+    try {
+      const response = await createReview({
+        token,
+        productId,
+        rating,
+        comment: nextComment,
+      });
+
+      setAllReviews((current) => [response.review, ...current]);
+      setComment("");
+      setRating(5);
+      setMessage("Thanks! Your review was added.");
+    } catch (error) {
+      if (error instanceof Error) {
+        setMessage(error.message);
+      } else {
+        setMessage("Unable to submit review right now.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -85,11 +104,16 @@ export function ReviewSection({
           value={comment}
           onChange={(event) => setComment(event.target.value)}
           placeholder="Write your comment about the product..."
+          disabled={!isAuthenticated || isSubmitting}
         />
 
         <div className="review-form__footer">
-          <button type="submit" className="review-form__submit">
-            Submit review
+          <button
+            type="submit"
+            className="review-form__submit"
+            disabled={!isAuthenticated || isSubmitting}
+          >
+            {isSubmitting ? "Submitting..." : "Submit review"}
           </button>
           {message ? <p className="review-form__message">{message}</p> : null}
         </div>
