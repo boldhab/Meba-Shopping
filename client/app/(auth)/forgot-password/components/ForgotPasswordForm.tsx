@@ -20,7 +20,6 @@ export function ForgotPasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [devCode, setDevCode] = useState<string | undefined>(undefined);
 
   // Step 1 — request the reset code
   const handleRequest = async (event: FormEvent<HTMLFormElement>) => {
@@ -29,10 +28,7 @@ export function ForgotPasswordForm() {
     setIsSubmitting(true);
 
     try {
-      const result = await requestPasswordReset({ email });
-      if (result.devResetCode) {
-        setDevCode(result.devResetCode);
-      }
+      await requestPasswordReset({ email });
       setStep("confirm");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to send reset code right now.");
@@ -84,11 +80,9 @@ export function ForgotPasswordForm() {
         <p>
           A 6-digit reset code was sent to <strong>{email}</strong>. Enter it below along with your new password.
         </p>
-        {devCode ? (
-          <p className="form-success">
-            Dev mode — your code is: <strong>{devCode}</strong>
-          </p>
-        ) : null}
+        <p className="form-success">
+          Code sent successfully.
+        </p>
         <form className="form-stack" onSubmit={handleConfirm}>
           <label className="label-stack" htmlFor="reset-code">
             Reset code
@@ -138,7 +132,7 @@ export function ForgotPasswordForm() {
                 type="button"
                 className="auth-meta-text"
                 style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--color-accent)", textDecoration: "underline" }}
-                onClick={() => { setStep("request"); setError(null); setCode(""); setDevCode(undefined); }}
+                onClick={() => { setStep("request"); setError(null); setCode(""); }}
               >
                 Try again
               </button>
