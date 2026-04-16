@@ -31,20 +31,6 @@ export default async function ProductDetailPage(props: { params: Promise<{ slug:
 
   return (
     <section className="page-stack product-detail-page">
-      <nav className="product-breadcrumbs" aria-label="Breadcrumb">
-        <a href="/">Home</a>
-        <span>/</span>
-        <a href="/products">Products</a>
-        <span>/</span>
-        {product.category && (
-          <>
-            <a href={`/products?categoryId=${product.category.id}`}>{product.category.name}</a>
-            <span>/</span>
-          </>
-        )}
-        <span>{product.name}</span>
-      </nav>
-
       <div className="product-detail-layout">
         <ProductGallery imageUrls={imageUrls} productName={product.name} />
 

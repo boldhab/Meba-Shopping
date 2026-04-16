@@ -1,4 +1,5 @@
 import { Product } from "@/lib/api/products";
+import { ProductActions } from "./ProductActions";
 
 export function AddToCart({ product }: { product: Product }) {
   const canAddToCart = product.stock > 0;
@@ -24,6 +25,8 @@ export function AddToCart({ product }: { product: Product }) {
           Add to Cart
         </button>
       </div>
+
+      <ProductActions productId={product.id} productName={product.name} />
 
       <p className="product-purchase__note">Compare prices, check reviews, and confirm your delivery estimate before you order.</p>
     </section>
