@@ -9,51 +9,92 @@ const prisma = new PrismaClient({ adapter });
 export async function seed() {
   console.log("Seeding database...");
 
-  // Create Categories
-  const freshProduce = await prisma.category.upsert({
-    where: { slug: "fresh-produce" },
-    update: {},
-    create: {
-      name: "Fresh Produce",
-      slug: "fresh-produce",
-    },
-  });
+  // Define Category Data
+  const categoriesData = [
+    { name: "Electronics", slug: "electronics" },
+    { name: "Fashion", slug: "fashion" },
+    { name: "Home & Kitchen", slug: "home-kitchen" },
+    { name: "Beauty & Personal Care", slug: "beauty-personal-care" },
+    { name: "Groceries", slug: "groceries" },
+    { name: "Health & Fitness", slug: "health-fitness" },
+    { name: "Books & Media", slug: "books-media" },
+    { name: "Toys & Games", slug: "toys-games" },
+    { name: "Automotive", slug: "automotive" },
+    { name: "Office Supplies", slug: "office-supplies" },
+    { name: "Pet Supplies", slug: "pet-supplies" },
+    { name: "Fresh Produce", slug: "fresh-produce" },
+    { name: "Dairy & Eggs", slug: "dairy-and-eggs" },
+    { name: "Bakery", slug: "bakery" },
+  ];
 
-  const dairyAndEggs = await prisma.category.upsert({
-    where: { slug: "dairy-and-eggs" },
-    update: {},
-    create: {
-      name: "Dairy & Eggs",
-      slug: "dairy-and-eggs",
-    },
-  });
+  const categoriesMap: Record<string, any> = {};
 
-  const bakery = await prisma.category.upsert({
-    where: { slug: "bakery" },
-    update: {},
-    create: {
-      name: "Bakery",
-      slug: "bakery",
-    },
-  });
+  for (const cat of categoriesData) {
+    const created = await prisma.category.upsert({
+      where: { slug: cat.slug },
+      update: {},
+      create: cat,
+    });
+    categoriesMap[cat.slug] = created;
+  }
 
   // Create Products
   const products = [
+    {
+      name: "Wireless Headphones",
+      slug: "wireless-headphones",
+      description: "Noise-cancelling over-ear headphones with 40h battery life.",
+      price: 129.99,
+      stock: 15,
+      categoryId: categoriesMap["electronics"].id,
+    },
+    {
+      name: "Smart Watch Series 5",
+      slug: "smart-watch-5",
+      description: "Advanced fitness tracking and heart rate monitor.",
+      price: 249.00,
+      stock: 10,
+      categoryId: categoriesMap["electronics"].id,
+    },
+    {
+      name: "Classic Denim Jacket",
+      slug: "denim-jacket",
+      description: "Timeless blue denim jacket with a relaxed fit.",
+      price: 59.90,
+      stock: 25,
+      categoryId: categoriesMap["fashion"].id,
+    },
+    {
+      name: "Premium Blender",
+      slug: "premium-blender",
+      description: "High-speed blender for smoothies and soups.",
+      price: 89.99,
+      stock: 12,
+      categoryId: categoriesMap["home-kitchen"].id,
+    },
+    {
+      name: "Moisturizing Cream",
+      slug: "moisturizing-cream",
+      description: "Hydrating face cream with hyaluronic acid.",
+      price: 24.50,
+      stock: 40,
+      categoryId: categoriesMap["beauty-personal-care"].id,
+    },
+    {
+      name: "Yoga Mat",
+      slug: "yoga-mat",
+      description: "Non-slip eco-friendly yoga mat (6mm).",
+      price: 35.00,
+      stock: 20,
+      categoryId: categoriesMap["health-fitness"].id,
+    },
     {
       name: "Organic Bananas",
       slug: "organic-bananas",
       description: "Fresh bunch of organic bananas.",
       price: 1.99,
       stock: 50,
-      categoryId: freshProduce.id,
-    },
-    {
-      name: "Gala Apples",
-      slug: "gala-apples",
-      description: "Crisp and sweet gala apples.",
-      price: 3.49,
-      stock: 100,
-      categoryId: freshProduce.id,
+      categoryId: categoriesMap["fresh-produce"].id,
     },
     {
       name: "Whole Milk",
@@ -61,15 +102,7 @@ export async function seed() {
       description: "1 gallon of vitamin D whole milk.",
       price: 4.29,
       stock: 30,
-      categoryId: dairyAndEggs.id,
-    },
-    {
-      name: "Organic Eggs",
-      slug: "organic-eggs",
-      description: "Dozen large organic brown eggs.",
-      price: 5.99,
-      stock: 40,
-      categoryId: dairyAndEggs.id,
+      categoryId: categoriesMap["dairy-and-eggs"].id,
     },
     {
       name: "Sourdough Bread",
@@ -77,7 +110,15 @@ export async function seed() {
       description: "Artisan sourdough loaf, baked fresh.",
       price: 6.50,
       stock: 20,
-      categoryId: bakery.id,
+      categoryId: categoriesMap["bakery"].id,
+    },
+    {
+      name: "Dog Plush Toy",
+      slug: "dog-plush-toy",
+      description: "Soft squeaky plush toy for puppies.",
+      price: 12.99,
+      stock: 35,
+      categoryId: categoriesMap["pet-supplies"].id,
     },
   ];
 
