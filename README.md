@@ -31,3 +31,8 @@ scripts/      Project automation scripts
 - `server` exposes REST APIs and business logic.
 - `database` contains PostgreSQL-related assets.
 - `shared` is reserved for code shared between frontend and backend.
+
+## Auto Git Sync
+
+- Start auto-sync: `npm run git:auto-sync`
+- Health check: `npm run git:auto-sync:health`
