@@ -1,8 +1,10 @@
+import { ForgotPasswordForm } from "./components/ForgotPasswordForm";
+
+export const metadata = {
+  title: "Forgot Password – Meba",
+  description: "Reset your Meba account password."
+};
+
 export default function ForgotPasswordPage() {
-  return (
-    <section className="state-card">
-      <h1>Forgot password</h1>
-      <p>Password recovery flow placeholder.</p>
-    </section>
-  );
+  return <ForgotPasswordForm />;
 }
