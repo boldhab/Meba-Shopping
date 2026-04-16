@@ -34,5 +34,17 @@ export const mailer = {
       text: `Your verification code is ${code}. It expires in ${expiresInMinutes} minutes.`,
       html: `<p>Your verification code is <strong>${code}</strong>.</p><p>It expires in ${expiresInMinutes} minutes.</p>`
     });
+  },
+
+  async sendPasswordResetCode(email: string, code: string, expiresInMinutes: number) {
+    const transporter = createTransporter();
+
+    await transporter.sendMail({
+      from: env.mailFrom,
+      to: email,
+      subject: "Reset your Meba password",
+      text: `Your password reset code is ${code}. It expires in ${expiresInMinutes} minutes. If you did not request this, you can safely ignore this email.`,
+      html: `<p>Your password reset code is <strong>${code}</strong>.</p><p>It expires in ${expiresInMinutes} minutes.</p><p>If you did not request this, you can safely ignore this email.</p>`
+    });
   }
 };
