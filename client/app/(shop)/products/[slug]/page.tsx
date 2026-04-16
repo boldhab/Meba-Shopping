@@ -1,9 +1,12 @@
-import { getProductBySlug, ProductReview } from "@/lib/api/products";
+import { getProductBySlug, getProducts, ProductReview } from "@/lib/api/products";
 import { notFound } from "next/navigation";
 import { ProductGallery } from "./components/ProductGallery";
 import { AddToCart } from "./components/AddToCart";
 import { ProductInfo } from "./components/ProductInfo";
 import { ReviewSection } from "./components/ReviewSection";
+import { ProductFaq } from "./components/ProductFaq";
+import { ProductQA } from "./components/ProductQA";
+import { RelatedProducts } from "./components/RelatedProducts";
 import { getProductImageUrls } from "@/lib/utils/productImages";
 
 function calculateAverageRating(reviews: ProductReview[]) {
@@ -28,6 +31,12 @@ export default async function ProductDetailPage(props: { params: Promise<{ slug:
     : "No reviews yet";
   const availabilityText = product.stock > 0 ? `${product.stock} available` : "Out of stock";
   const primaryCategory = product.category?.name ?? "Marketplace";
+  const relatedResult = product.categoryId
+    ? await getProducts({ categoryId: product.categoryId, limit: "8" })
+    : { items: [], total: 0 };
+  const relatedProducts = relatedResult.items
+    .filter((item) => item.id !== product.id)
+    .slice(0, 4);
 
   return (
     <section className="page-stack product-detail-page">
@@ -85,6 +94,13 @@ export default async function ProductDetailPage(props: { params: Promise<{ slug:
           <ReviewSection productId={product.id} reviews={reviews} averageRating={averageRating} />
         </div>
       </div>
+
+      <div className="product-detail-extras">
+        <ProductFaq />
+        <ProductQA />
+      </div>
+
+      <RelatedProducts products={relatedProducts} />
     </section>
   );
 }
