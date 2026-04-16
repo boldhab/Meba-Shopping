@@ -5,12 +5,18 @@ export function AddToCart({ product }: { product: Product }) {
 
   return (
     <section className="product-purchase">
-      <p className="product-purchase__status">
-        {canAddToCart ? "Ready to add to cart." : "Currently unavailable due to low inventory."}
-      </p>
-      <button className="button" type="button" disabled={!canAddToCart} aria-disabled={!canAddToCart}>
-        Add to cart
-      </button>
+      <div className="product-purchase__status">
+        <strong>Quantity:</strong> 1 piece ({canAddToCart ? `${product.stock} available` : "Out of stock"})
+      </div>
+      
+      <div className="product-purchase__buttons">
+        <button className="button--ae-buy" type="button" disabled={!canAddToCart} aria-disabled={!canAddToCart}>
+          Buy Now
+        </button>
+        <button className="button--ae-cart" type="button" disabled={!canAddToCart} aria-disabled={!canAddToCart}>
+          Add to Cart
+        </button>
+      </div>
     </section>
   );
 }
