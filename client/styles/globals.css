@@ -356,6 +356,23 @@ a {
   gap: 2rem;
 }
 
+.product-breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+
+.product-breadcrumbs a {
+  color: var(--color-text);
+}
+
+.product-breadcrumbs span:last-child {
+  color: var(--color-accent);
+}
+
 .product-detail-layout {
   display: grid;
   grid-template-columns: 450px 1fr;
@@ -777,6 +794,9 @@ a {
 }
 
 .review-section h2 {
+  margin: 0;
+}
+
 .review-section__empty {
   color: var(--color-muted);
 }
