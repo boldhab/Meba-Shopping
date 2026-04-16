@@ -961,6 +961,75 @@ a {
   color: var(--color-muted);
 }
 
+.review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 0.9rem;
+  background: var(--color-surface);
+}
+
+.review-form__label {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.review-form__stars {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.review-form__star {
+  border: none;
+  background: transparent;
+  color: #d0c7ba;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.review-form__star.is-active {
+  color: #ff5000;
+}
+
+.review-form__comment {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  background: #fff;
+  color: var(--color-text);
+  font: inherit;
+  resize: vertical;
+}
+
+.review-form__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.review-form__submit {
+  border: 1px solid var(--color-accent);
+  border-radius: 999px;
+  padding: 0.5rem 0.95rem;
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-form__message {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
 .review-section__list {
   margin: 1rem 0 0;
   padding: 0;
