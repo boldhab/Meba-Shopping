@@ -5,7 +5,9 @@ import { validateRequest } from "../../middleware/validationMiddleware";
 import {
 	loginValidator,
 	requestEmailVerificationValidator,
-	registerValidator
+	registerValidator,
+	requestPasswordResetValidator,
+	confirmPasswordResetValidator
 } from "../../utils/validators/authValidator";
 
 export const authRoutes = Router();
@@ -16,3 +18,5 @@ authRoutes.post("/login", validateRequest(loginValidator), authController.login)
 authRoutes.get("/google/start", authController.googleStart);
 authRoutes.get("/google/callback", authController.googleCallback);
 authRoutes.get("/me", authMiddleware, authController.me);
+authRoutes.post("/password-reset/request", validateRequest(requestPasswordResetValidator), authController.requestPasswordReset);
+authRoutes.post("/password-reset/confirm", validateRequest(confirmPasswordResetValidator), authController.confirmPasswordReset);

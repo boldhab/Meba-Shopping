@@ -62,5 +62,23 @@ export const authController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async requestPasswordReset(request: Request, response: Response, next: NextFunction) {
+    try {
+      const result = await authService.requestPasswordReset(request.body);
+      response.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async confirmPasswordReset(request: Request, response: Response, next: NextFunction) {
+    try {
+      const result = await authService.confirmPasswordReset(request.body);
+      response.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
   }
 };
