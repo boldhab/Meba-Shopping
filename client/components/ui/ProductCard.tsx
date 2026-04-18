@@ -6,12 +6,17 @@ export function ProductCard({ product }: { product: Product }) {
   const [coverImage] = getProductImageUrls(product.slug, product.name);
   const isOutOfStock = product.stock <= 0;
   const productHref = `/products/${product.slug || product.id}`;
+  const activeDealType = product.isDealActive ? product.dealType : null;
+  const dealLabel = activeDealType
+    ? `${activeDealType.charAt(0)}${activeDealType.slice(1).toLowerCase()} Deal`
+    : null;
 
   return (
     <Link href={productHref} className="product-card" aria-label={`View details for ${product.name}`}>
       <div className="product-card__media">
         <img className="product-card__image" src={coverImage} alt={product.name} loading="lazy" />
         {isOutOfStock && <span className="product-card__badge">Out of stock</span>}
+        {dealLabel && <span className="product-card__badge">{dealLabel}</span>}
       </div>
 
       <div className="product-card__content">

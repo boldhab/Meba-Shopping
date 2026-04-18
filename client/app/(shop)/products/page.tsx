@@ -1,7 +1,7 @@
 import { ProductGrid } from "./components/ProductGrid";
 import { Pagination } from "./components/Pagination";
 import { ProductPromotions } from "./components/ProductPromotions";
-import { getProducts } from "@/lib/api/products";
+import { getActiveDeals, getProducts } from "@/lib/api/products";
 
 type ProductSearchParams = {
   search?: string;
@@ -24,6 +24,7 @@ export default async function ProductsPage(props: {
   };
 
   const productsResult = await getProducts(filters);
+  const activeDealsResult = await getActiveDeals({ limit: "120" });
 
   return (
     <section className="page-stack products-page">
@@ -38,7 +39,7 @@ export default async function ProductsPage(props: {
         </p>
       </div>
       
-      <ProductPromotions products={productsResult.items} />
+      <ProductPromotions products={activeDealsResult.items} />
 
       <div className="products-layout-single">
         <ProductGrid products={productsResult.items} />

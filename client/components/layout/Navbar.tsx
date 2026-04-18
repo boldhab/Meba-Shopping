@@ -83,6 +83,7 @@ export function Navbar() {
   const navLinks = [
     { href: "/", label: "Home", icon: Package },
     { href: "/products", label: "Products", icon: Package },
+    { href: "/promotions", label: "Promotions", icon: Ticket },
     { href: "/cart", label: "Cart", icon: ShoppingCart },
   ];
 
@@ -387,14 +388,17 @@ export function Navbar() {
                 </button>
                 <div className="absolute left-0 top-full mt-1 hidden w-48 rounded-lg border border-slate-200 bg-white shadow-lg group-hover:block">
                   <div className="py-2">
-                    <Link href="/deals/today" className="block px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600">
-                      Today's Deals
+                    <Link href="/promotions?type=DAILY" className="block px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600">
+                      Daily Deals
                     </Link>
-                    <Link href="/deals/weekly" className="block px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600">
-                      Weekly Specials
+                    <Link href="/promotions?type=WEEKLY" className="block px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600">
+                      Weekly Deals
                     </Link>
-                    <Link href="/clearance" className="block px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600">
+                    <Link href="/promotions?type=CLEARANCE" className="block px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600">
                       Clearance
+                    </Link>
+                    <Link href="/promotions?type=CEREMONY" className="block px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600">
+                      Ceremony Deals
                     </Link>
                   </div>
                 </div>
@@ -434,12 +438,15 @@ export function Navbar() {
             </form>
 
             {/* Mobile Navigation Grid */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <Link href="/" className="rounded-lg border-2 border-slate-200 p-2 text-center text-xs font-medium text-slate-700 hover:border-orange-200 hover:bg-orange-50">
                 Home
               </Link>
               <Link href="/products" className="rounded-lg border-2 border-slate-200 p-2 text-center text-xs font-medium text-slate-700 hover:border-orange-200 hover:bg-orange-50">
                 Products
+              </Link>
+              <Link href="/promotions" className="rounded-lg border-2 border-slate-200 p-2 text-center text-xs font-medium text-slate-700 hover:border-orange-200 hover:bg-orange-50">
+                Promotions
               </Link>
               <Link href="/cart" className="rounded-lg border-2 border-slate-200 p-2 text-center text-xs font-medium text-slate-700 hover:border-orange-200 hover:bg-orange-50">
                 Cart

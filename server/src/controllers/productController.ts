@@ -4,8 +4,27 @@ import { productService } from "../services/productService";
 export const productController = {
   async list(request: Request, response: Response, next: NextFunction) {
     try {
-      const { categoryId, search, minPrice, maxPrice, page, limit } = request.query as any;
-      const result = await productService.getAllProducts({ categoryId, search, minPrice, maxPrice, page, limit });
+      const { categoryId, search, minPrice, maxPrice, dealType, dealsOnly, page, limit } = request.query as any;
+      const result = await productService.getAllProducts({
+        categoryId,
+        search,
+        minPrice,
+        maxPrice,
+        dealType,
+        dealsOnly,
+        page,
+        limit,
+      });
+      response.json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async listActiveDeals(request: Request, response: Response, next: NextFunction) {
+    try {
+      const { dealType, limit } = request.query as any;
+      const result = await productService.getActiveDeals({ dealType, limit });
       response.json(result);
     } catch (error) {
       next(error);

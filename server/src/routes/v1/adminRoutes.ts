@@ -5,4 +5,6 @@ import { authMiddleware } from "../../middleware/authMiddleware";
 
 export const adminRoutes = Router();
 
-adminRoutes.get("/", authMiddleware, adminMiddleware, adminController);
+adminRoutes.get("/", authMiddleware, adminMiddleware, adminController.overview);
+adminRoutes.get("/deals", authMiddleware, adminMiddleware, adminController.listDeals);
+adminRoutes.patch("/deals/:id", authMiddleware, adminMiddleware, adminController.updateDeal);

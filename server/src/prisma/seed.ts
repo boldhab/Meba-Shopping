@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import pg from "pg";
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
@@ -40,7 +40,11 @@ export async function seed() {
   }
 
   // Create Products
-  const products = [
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const products: Prisma.ProductUncheckedCreateInput[] = [
     {
       name: "Wireless Headphones",
       slug: "wireless-headphones",
@@ -48,6 +52,10 @@ export async function seed() {
       price: 129.99,
       stock: 15,
       categoryId: categoriesMap["electronics"].id,
+      dealType: "DAILY",
+      isDealActive: true,
+      dealStartAt: now,
+      dealEndAt: tomorrow,
     },
     {
       name: "Smart Watch Series 5",
@@ -56,6 +64,10 @@ export async function seed() {
       price: 249.00,
       stock: 10,
       categoryId: categoriesMap["electronics"].id,
+      dealType: "WEEKLY",
+      isDealActive: true,
+      dealStartAt: now,
+      dealEndAt: nextWeek,
     },
     {
       name: "Classic Denim Jacket",
@@ -64,6 +76,9 @@ export async function seed() {
       price: 59.90,
       stock: 25,
       categoryId: categoriesMap["fashion"].id,
+      dealType: "CLEARANCE",
+      isDealActive: true,
+      dealStartAt: now,
     },
     {
       name: "Premium Blender",
@@ -80,6 +95,10 @@ export async function seed() {
       price: 24.50,
       stock: 40,
       categoryId: categoriesMap["beauty-personal-care"].id,
+      dealType: "CEREMONY",
+      isDealActive: true,
+      dealStartAt: now,
+      dealEndAt: nextWeek,
     },
     {
       name: "Yoga Mat",
@@ -123,10 +142,28 @@ export async function seed() {
     },
   ];
 
-  for (const product of products) {
+  const normalizedProducts = products.map((product) => ({
+    ...product,
+    dealType: product.dealType ?? null,
+    isDealActive: product.isDealActive ?? false,
+    dealStartAt: product.dealStartAt ?? null,
+    dealEndAt: product.dealEndAt ?? null,
+  }));
+
+  for (const product of normalizedProducts) {
     await prisma.product.upsert({
       where: { slug: product.slug },
-      update: {},
+      update: {
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        stock: product.stock,
+        categoryId: product.categoryId,
+        dealType: product.dealType,
+        isDealActive: product.isDealActive,
+        dealStartAt: product.dealStartAt,
+        dealEndAt: product.dealEndAt,
+      },
       create: product,
     });
   }
