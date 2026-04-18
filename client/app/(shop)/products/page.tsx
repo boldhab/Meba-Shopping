@@ -1,5 +1,6 @@
 import { ProductGrid } from "./components/ProductGrid";
 import { Pagination } from "./components/Pagination";
+import { ProductPromotions } from "./components/ProductPromotions";
 import { getProducts } from "@/lib/api/products";
 
 type ProductSearchParams = {
@@ -36,6 +37,8 @@ export default async function ProductsPage(props: {
           {productsResult.total === 1 ? "" : "s"}
         </p>
       </div>
+      
+      <ProductPromotions products={productsResult.items} />
 
       <div className="products-layout-single">
         <ProductGrid products={productsResult.items} />
