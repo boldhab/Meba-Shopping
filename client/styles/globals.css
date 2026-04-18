@@ -324,9 +324,15 @@ a {
   color: var(--color-muted);
 }
 
+.products-layout,
+.products-layout-single {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
 .products-layout {
   display: grid;
-  gap: 1.2rem;
   grid-template-columns: minmax(220px, 300px) 1fr;
 }
 
