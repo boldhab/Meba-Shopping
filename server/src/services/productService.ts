@@ -75,6 +75,7 @@ export const productService = {
   async createProduct(input: {
     name: string;
     slug: string;
+    imageUrl?: string | null;
     description?: string | null;
     price: number;
     stock: number;
@@ -98,6 +99,7 @@ export const productService = {
     return productRepository.create({
       name: input.name,
       slug: input.slug,
+      imageUrl: input.imageUrl?.trim() || null,
       description: input.description?.trim() || null,
       price: input.price,
       stock: input.stock,
@@ -110,6 +112,7 @@ export const productService = {
     input: {
       name: string;
       slug: string;
+      imageUrl?: string | null;
       description?: string | null;
       price: number;
       stock: number;
@@ -139,6 +142,7 @@ export const productService = {
     return productRepository.updateById(productId, {
       name: input.name,
       slug: input.slug,
+      imageUrl: input.imageUrl?.trim() || null,
       description: input.description?.trim() || null,
       price: input.price,
       stock: input.stock,

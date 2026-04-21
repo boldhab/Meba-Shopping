@@ -28,6 +28,7 @@ const updateDealSchema = z
 const upsertProductSchema = z.object({
   name: z.string().min(2).max(120),
   slug: z.string().min(2).max(140).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must use lowercase letters, numbers, and hyphens only."),
+  imageUrl: z.string().url().nullable().optional(),
   description: z.string().max(3000).nullable().optional(),
   price: z.coerce.number().positive(),
   stock: z.coerce.number().int().min(0),
