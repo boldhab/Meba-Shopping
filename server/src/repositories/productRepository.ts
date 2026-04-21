@@ -90,6 +90,52 @@ export const productRepository = {
     });
   },
 
+  async create(input: {
+    name: string;
+    slug: string;
+    description: string | null;
+    price: number;
+    stock: number;
+    categoryId: string;
+  }) {
+    return prisma.product.create({
+      data: {
+        name: input.name,
+        slug: input.slug,
+        description: input.description,
+        price: input.price,
+        stock: input.stock,
+        categoryId: input.categoryId,
+      },
+      include: { category: true },
+    });
+  },
+
+  async updateById(
+    id: string,
+    input: {
+      name: string;
+      slug: string;
+      description: string | null;
+      price: number;
+      stock: number;
+      categoryId: string;
+    }
+  ) {
+    return prisma.product.update({
+      where: { id },
+      data: {
+        name: input.name,
+        slug: input.slug,
+        description: input.description,
+        price: input.price,
+        stock: input.stock,
+        categoryId: input.categoryId,
+      },
+      include: { category: true },
+    });
+  },
+
   async updateDealByProductId(
     id: string,
     input: {

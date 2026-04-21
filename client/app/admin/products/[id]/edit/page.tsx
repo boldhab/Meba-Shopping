@@ -4,7 +4,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   return (
     <section className="page-stack">
       <h1>Edit product #{params.id}</h1>
-      <ProductForm />
+      <ProductForm productId={params.id} />
     </section>
   );
 }

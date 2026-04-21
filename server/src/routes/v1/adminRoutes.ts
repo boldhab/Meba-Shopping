@@ -6,6 +6,10 @@ import { authMiddleware } from "../../middleware/authMiddleware";
 export const adminRoutes = Router();
 
 adminRoutes.get("/", authMiddleware, adminMiddleware, adminController.overview);
+adminRoutes.get("/products", authMiddleware, adminMiddleware, adminController.listProducts);
+adminRoutes.get("/products/:id", authMiddleware, adminMiddleware, adminController.getProduct);
+adminRoutes.post("/products", authMiddleware, adminMiddleware, adminController.createProduct);
+adminRoutes.patch("/products/:id", authMiddleware, adminMiddleware, adminController.updateProduct);
 adminRoutes.get("/deals", authMiddleware, adminMiddleware, adminController.listDeals);
 adminRoutes.get("/orders", authMiddleware, adminMiddleware, adminController.listOrders);
 adminRoutes.get("/orders/:id", authMiddleware, adminMiddleware, adminController.getOrder);

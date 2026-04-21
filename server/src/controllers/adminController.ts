@@ -25,6 +25,15 @@ const updateDealSchema = z
     }
   );
 
+const upsertProductSchema = z.object({
+  name: z.string().min(2).max(120),
+  slug: z.string().min(2).max(140).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must use lowercase letters, numbers, and hyphens only."),
+  description: z.string().max(3000).nullable().optional(),
+  price: z.coerce.number().positive(),
+  stock: z.coerce.number().int().min(0),
+  categoryId: z.string().min(1),
+});
+
 const updateOrderStatusSchema = z.object({
   status: z.enum(["PENDING", "PAID", "PACKED", "SHIPPED", "DELIVERED", "CANCELLED"]),
 });
@@ -172,6 +181,54 @@ export const adminController = {
     try {
       const result = await productService.listProductsForAdminDeals();
       response.json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async listProducts(_request: Request, response: Response, next: NextFunction) {
+    try {
+      const result = await productService.listProductsForAdmin();
+      response.json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getProduct(request: Request, response: Response, next: NextFunction) {
+    try {
+      const product = await productService.getProductById(String(request.params.id));
+
+      if (!product) {
+        throw new ApiError(404, "Product not found.");
+      }
+
+      response.json(product);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async createProduct(request: Request, response: Response, next: NextFunction) {
+    try {
+      const payload = upsertProductSchema.parse(request.body);
+      const product = await productService.createProduct(payload);
+      response.status(201).json(product);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateProduct(request: Request, response: Response, next: NextFunction) {
+    try {
+      const payload = upsertProductSchema.parse(request.body);
+      const product = await productService.updateProduct(String(request.params.id), payload);
+
+      if (!product) {
+        throw new ApiError(404, "Product not found.");
+      }
+
+      response.json(product);
     } catch (error) {
       next(error);
     }

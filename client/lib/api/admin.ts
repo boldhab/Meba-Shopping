@@ -80,8 +80,55 @@ export type AdminUserDetail = AdminUser & {
   recentOrders: AdminOrder[];
 };
 
+export type AdminProduct = Product;
+
 export async function getAdminOverview(token: string): Promise<AdminOverview> {
   return requestApi<AdminOverview>("/admin", { token });
+}
+
+export async function getAdminProducts(token: string): Promise<{ items: AdminProduct[]; total: number }> {
+  return requestApi<{ items: AdminProduct[]; total: number }>("/admin/products", { token });
+}
+
+export async function getAdminProduct(token: string, productId: string): Promise<AdminProduct> {
+  return requestApi<AdminProduct>(`/admin/products/${productId}`, { token });
+}
+
+export async function createAdminProduct(
+  token: string,
+  input: {
+    name: string;
+    slug: string;
+    description?: string | null;
+    price: number;
+    stock: number;
+    categoryId: string;
+  }
+): Promise<AdminProduct> {
+  return requestApi<AdminProduct>("/admin/products", {
+    method: "POST",
+    token,
+    body: input,
+  });
+}
+
+export async function updateAdminProduct(
+  token: string,
+  productId: string,
+  input: {
+    name: string;
+    slug: string;
+    description?: string | null;
+    price: number;
+    stock: number;
+    categoryId: string;
+  }
+): Promise<AdminProduct> {
+  return requestApi<AdminProduct>(`/admin/products/${productId}`, {
+    method: "PATCH",
+    token,
+    body: input,
+  });
 }
 
 export async function getAdminOrders(token: string): Promise<{ items: AdminOrder[]; total: number }> {

@@ -1,4 +1,6 @@
 import { productRepository } from "../repositories/productRepository";
+import { categoryRepository } from "../repositories/categoryRepository";
+import { ApiError } from "../utils/apiError";
 
 const DEAL_TYPES = ["DAILY", "WEEKLY", "CLEARANCE", "CEREMONY"] as const;
 
@@ -47,6 +49,10 @@ export const productService = {
     return productRepository.findBySlug(slug);
   },
 
+  async getProductById(id: string) {
+    return productRepository.findById(id);
+  },
+
   async getActiveDeals(query: { dealType?: string; limit?: string }) {
     const take = query.limit ? parseInt(query.limit) : 100;
 
@@ -60,6 +66,84 @@ export const productService = {
 
   async listProductsForAdminDeals() {
     return productRepository.findAll({ take: 300, skip: 0 });
+  },
+
+  async listProductsForAdmin() {
+    return productRepository.findAll({ take: 300, skip: 0 });
+  },
+
+  async createProduct(input: {
+    name: string;
+    slug: string;
+    description?: string | null;
+    price: number;
+    stock: number;
+    categoryId: string;
+  }) {
+    const existingProduct = await productRepository.findAll({
+      search: input.slug,
+      take: 300,
+      skip: 0,
+    });
+    const category = await categoryRepository.findById(input.categoryId);
+
+    if (!category) {
+      throw new ApiError(404, "Category not found.");
+    }
+
+    if (existingProduct.items.some((item) => item.slug === input.slug)) {
+      throw new ApiError(409, "A product with that slug already exists.");
+    }
+
+    return productRepository.create({
+      name: input.name,
+      slug: input.slug,
+      description: input.description?.trim() || null,
+      price: input.price,
+      stock: input.stock,
+      categoryId: input.categoryId,
+    });
+  },
+
+  async updateProduct(
+    productId: string,
+    input: {
+      name: string;
+      slug: string;
+      description?: string | null;
+      price: number;
+      stock: number;
+      categoryId: string;
+    }
+  ) {
+    const existing = await productRepository.findById(productId);
+    if (!existing) {
+      return null;
+    }
+
+    const category = await categoryRepository.findById(input.categoryId);
+    if (!category) {
+      throw new ApiError(404, "Category not found.");
+    }
+
+    const slugMatches = await productRepository.findAll({
+      search: input.slug,
+      take: 300,
+      skip: 0,
+    });
+
+    if (slugMatches.items.some((item) => item.slug === input.slug && item.id !== productId)) {
+      throw new ApiError(409, "A product with that slug already exists.");
+    }
+
+    return productRepository.updateById(productId, {
+      name: input.name,
+      slug: input.slug,
+      description: input.description?.trim() || null,
+      price: input.price,
+      stock: input.stock,
+      categoryId: input.categoryId,
+    });
   },
 
   async updateProductDeal(
