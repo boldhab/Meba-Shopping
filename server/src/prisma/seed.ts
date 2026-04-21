@@ -2,13 +2,35 @@ import 'dotenv/config';
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, Prisma } from "@prisma/client";
 import pg from "pg";
+import { hashPassword } from "../utils/hashPassword";
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+const DEFAULT_ADMIN_EMAIL = "admin@meba.local";
+const DEFAULT_ADMIN_PASSWORD = "Admin1234!";
+const DEFAULT_ADMIN_NAME = "Meba Admin";
+
 export async function seed() {
   console.log("Seeding database...");
+
+  const adminPasswordHash = await hashPassword(DEFAULT_ADMIN_PASSWORD);
+
+  await prisma.user.upsert({
+    where: { email: DEFAULT_ADMIN_EMAIL },
+    update: {
+      name: DEFAULT_ADMIN_NAME,
+      passwordHash: adminPasswordHash,
+      role: "ADMIN",
+    },
+    create: {
+      name: DEFAULT_ADMIN_NAME,
+      email: DEFAULT_ADMIN_EMAIL,
+      passwordHash: adminPasswordHash,
+      role: "ADMIN",
+    },
+  });
 
   // Define Category Data
   const categoriesData = [
@@ -168,6 +190,7 @@ export async function seed() {
     });
   }
 
+  console.log(`Seeded admin user: ${DEFAULT_ADMIN_EMAIL} / ${DEFAULT_ADMIN_PASSWORD}`);
   console.log("Seeding complete!");
 }
 

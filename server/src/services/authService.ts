@@ -215,6 +215,10 @@ export const authService = {
   async register(input: RegisterInput) {
     purgeExpiredEmailVerificationCode();
 
+    if (input.role === "ADMIN") {
+      throw new ApiError(403, "Admin accounts cannot be created through public registration.");
+    }
+
     const normalizedEmail = input.email.toLowerCase();
     const existingUser = await userRepository.findByEmail(normalizedEmail);
 

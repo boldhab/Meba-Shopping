@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getGoogleAuthStartUrl } from "@/lib/api/auth";
 import { Mail, Lock, Globe, AlertCircle, Eye, EyeOff } from "lucide-react";
@@ -33,12 +33,28 @@ function GoogleIcon() {
 
 export function LoginForm() {
   const router = useRouter();
-  const { login } = useAuth();
+  const searchParams = useSearchParams();
+  const { login, user, isAuthenticated } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const nextPath = searchParams.get("next");
+
+  const goToPostLoginPage = () => {
+    if (nextPath) {
+      router.push(nextPath);
+      return;
+    }
+
+    if (user?.role === "ADMIN") {
+      router.push("/admin");
+      return;
+    }
+
+    router.push("/account");
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -47,7 +63,11 @@ export function LoginForm() {
 
     try {
       await login({ email, password });
-      router.push("/account");
+      if (nextPath) {
+        router.push(nextPath);
+      } else {
+        router.push("/account");
+      }
     } catch (submitError) {
       if (submitError instanceof Error) {
         setError(submitError.message);
@@ -62,6 +82,14 @@ export function LoginForm() {
   const handleGoogleLogin = () => {
     window.location.href = getGoogleAuthStartUrl();
   };
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      return;
+    }
+
+    goToPostLoginPage();
+  }, [isAuthenticated, user, nextPath]);
 
   return (
     <section className="mx-auto w-full max-w-2xl rounded-3xl border border-[var(--color-border)] bg-[rgba(255,253,248,0.94)] p-8 shadow-[0_14px_40px_rgba(31,29,26,0.08)]">
