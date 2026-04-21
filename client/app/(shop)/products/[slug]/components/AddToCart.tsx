@@ -44,7 +44,8 @@ export function AddToCart({ product }: { product: Product }) {
           ? "Limited stock. Ships while available."
           : "In stock and ready to ship.";
 
-  const [coverImage] = getProductImageUrls(product.slug, product.name);
+  const [fallbackImage] = getProductImageUrls(product.slug, product.name);
+  const coverImage = product.imageUrl ?? fallbackImage;
 
   const handleAddToCart = async () => {
     if (!canAddToCart) return;
