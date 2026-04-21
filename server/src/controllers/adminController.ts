@@ -25,6 +25,55 @@ const updateDealSchema = z
     }
   );
 
+const updateOrderStatusSchema = z.object({
+  status: z.enum(["PENDING", "PAID", "PACKED", "SHIPPED", "DELIVERED", "CANCELLED"]),
+});
+
+const allowedOrderStatusTransitions: Record<string, string[]> = {
+  PENDING: ["PAID", "CANCELLED"],
+  PAID: ["PACKED", "CANCELLED"],
+  PACKED: ["SHIPPED", "CANCELLED"],
+  SHIPPED: ["DELIVERED"],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+
+function serializeAdminOrder(order: {
+  id: string;
+  status: string;
+  totalAmount: { toString(): string } | number;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    role?: string;
+    createdAt?: Date;
+  };
+  items: Array<{
+    id: string;
+    quantity: number;
+    unitPrice: { toString(): string } | number;
+    productId: string;
+    product: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  }>;
+}) {
+  return {
+    ...order,
+    totalAmount: Number(order.totalAmount),
+    items: order.items.map((item) => ({
+      ...item,
+      unitPrice: Number(item.unitPrice),
+    })),
+  };
+}
+
 export const adminController = {
   async overview(_request: Request, response: Response, next: NextFunction) {
     try {
@@ -155,14 +204,7 @@ export const adminController = {
       });
 
       response.json({
-        items: orders.map((order) => ({
-          ...order,
-          totalAmount: Number(order.totalAmount),
-          items: order.items.map((item) => ({
-            ...item,
-            unitPrice: Number(item.unitPrice),
-          })),
-        })),
+        items: orders.map(serializeAdminOrder),
         total: orders.length,
       });
     } catch (error) {
@@ -203,13 +245,87 @@ export const adminController = {
       }
 
       response.json({
-        ...order,
-        totalAmount: Number(order.totalAmount),
-        items: order.items.map((item) => ({
-          ...item,
-          unitPrice: Number(item.unitPrice),
-        })),
+        ...serializeAdminOrder(order),
       });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateOrderStatus(request: Request, response: Response, next: NextFunction) {
+    try {
+      const payload = updateOrderStatusSchema.parse(request.body);
+
+      const existingOrder = await prisma.order.findUnique({
+        where: { id: String(request.params.id) },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              createdAt: true,
+            },
+          },
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!existingOrder) {
+        throw new ApiError(404, "Order not found.");
+      }
+
+      if (existingOrder.status === payload.status) {
+        return response.json(serializeAdminOrder(existingOrder));
+      }
+
+      const allowedStatuses = allowedOrderStatusTransitions[existingOrder.status] ?? [];
+      if (!allowedStatuses.includes(payload.status)) {
+        throw new ApiError(
+          400,
+          `Cannot change order status from ${existingOrder.status} to ${payload.status}.`
+        );
+      }
+
+      const updatedOrder = await prisma.order.update({
+        where: { id: existingOrder.id },
+        data: { status: payload.status },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              createdAt: true,
+            },
+          },
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      response.json(serializeAdminOrder(updatedOrder));
     } catch (error) {
       next(error);
     }

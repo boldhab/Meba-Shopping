@@ -62,6 +62,9 @@ export type AdminOrder = {
   }>;
 };
 
+export const adminOrderStatuses = ["PENDING", "PAID", "PACKED", "SHIPPED", "DELIVERED", "CANCELLED"] as const;
+export type AdminOrderStatus = (typeof adminOrderStatuses)[number];
+
 export type AdminUser = {
   id: string;
   name: string | null;
@@ -87,6 +90,18 @@ export async function getAdminOrders(token: string): Promise<{ items: AdminOrder
 
 export async function getAdminOrder(token: string, orderId: string): Promise<AdminOrder> {
   return requestApi<AdminOrder>(`/admin/orders/${orderId}`, { token });
+}
+
+export async function updateAdminOrderStatus(
+  token: string,
+  orderId: string,
+  status: AdminOrderStatus
+): Promise<AdminOrder> {
+  return requestApi<AdminOrder>(`/admin/orders/${orderId}/status`, {
+    method: "PATCH",
+    token,
+    body: { status },
+  });
 }
 
 export async function getAdminUsers(token: string): Promise<{ items: AdminUser[]; total: number }> {

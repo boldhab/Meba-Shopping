@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getAdminOrder, type AdminOrder } from "@/lib/api/admin";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { formatPrice } from "@/lib/utils/formatPrice";
+import { UpdateStatus } from "../components/UpdateStatus";
 
 export default function AdminOrderDetailPage({ params }: { params: { id: string } }) {
   const { token, user, isAuthenticated } = useAuth();
@@ -90,25 +91,29 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
               </div>
             </section>
 
-            <section className="panel admin-dashboard__section">
-              <div className="admin-dashboard__section-header">
-                <div>
-                  <h2 className="m-0">Customer</h2>
-                  <p className="m-0 text-sm text-(--color-muted)">Who placed this order.</p>
-                </div>
-              </div>
+            <div className="admin-dashboard__side">
+              <UpdateStatus order={order} onUpdated={setOrder} />
 
-              <div className="admin-dashboard__list-item">
-                <div>
-                  <strong>{order.user.name ?? "Unnamed user"}</strong>
-                  <p>{order.user.email}</p>
+              <section className="panel admin-dashboard__section">
+                <div className="admin-dashboard__section-header">
+                  <div>
+                    <h2 className="m-0">Customer</h2>
+                    <p className="m-0 text-sm text-(--color-muted)">Who placed this order.</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <strong>{new Date(order.createdAt).toLocaleDateString()}</strong>
-                  <p>Placed on</p>
+
+                <div className="admin-dashboard__list-item">
+                  <div>
+                    <strong>{order.user.name ?? "Unnamed user"}</strong>
+                    <p>{order.user.email}</p>
+                  </div>
+                  <div className="text-right">
+                    <strong>{new Date(order.createdAt).toLocaleDateString()}</strong>
+                    <p>Placed on</p>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            </div>
           </div>
         </>
       ) : null}
