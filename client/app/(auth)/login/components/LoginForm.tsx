@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -42,7 +42,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const nextPath = searchParams.get("next");
 
-  const goToPostLoginPage = () => {
+  const goToPostLoginPage = useCallback(() => {
     if (nextPath) {
       router.push(nextPath);
       return;
@@ -54,7 +54,7 @@ export function LoginForm() {
     }
 
     router.push("/account");
-  };
+  }, [nextPath, router, user?.role]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
