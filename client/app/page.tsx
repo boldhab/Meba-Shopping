@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { getActiveDeals, type DealType, type Product } from "@/lib/api/products";
-import { DEAL_TYPE_LABELS } from "./(shop)/products/components/ProductPromotions";
 
 const quickLinks = [
   { href: "/products", label: "Browse products" },
@@ -11,6 +10,13 @@ const quickLinks = [
 ];
 
 const DEAL_TYPE_ORDER: DealType[] = ["DAILY", "WEEKLY", "CLEARANCE", "CEREMONY"];
+
+const DEAL_TYPE_LABELS: Record<DealType, string> = {
+  DAILY: "Daily Deals",
+  WEEKLY: "Weekly Deals",
+  CLEARANCE: "Clearance Deals",
+  CEREMONY: "Ceremony Deals",
+};
 
 const DEAL_TYPE_SUMMARIES: Record<DealType, string> = {
   DAILY: "Fresh daily picks updated for fast-moving shoppers.",
@@ -86,9 +92,12 @@ export default async function HomePage() {
                     <h3>{DEAL_TYPE_LABELS[dealType]}</h3>
                     <p>{DEAL_TYPE_SUMMARIES[dealType]}</p>
                   </div>
-                  <Link href={`/promotions?type=${dealType}`} className="home-deals__section-link">
-                    Open section
-                  </Link>
+                  <div className="home-deals__section-actions">
+                    <span className="home-deals__swipe-hint">Swipe to explore</span>
+                    <Link href={`/promotions?type=${dealType}`} className="home-deals__section-link">
+                      Open section
+                    </Link>
+                  </div>
                 </div>
 
                 {items.length > 0 ? (

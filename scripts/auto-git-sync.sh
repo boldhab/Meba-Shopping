@@ -55,6 +55,34 @@ echo "Press Ctrl+C to stop."
 LAST_STATUS_SNAPSHOT=""
 LAST_CHANGE_EPOCH="0"
 
+push_branch() {
+  git push -u origin "${BRANCH}"
+}
+
+push_pending_commits() {
+  local remote_ref="refs/remotes/origin/${BRANCH}"
+  local ahead_count="0"
+
+  if git show-ref --verify --quiet "${remote_ref}"; then
+    ahead_count="$(git rev-list --count "origin/${BRANCH}..HEAD" 2>/dev/null || echo 0)"
+    if (( ahead_count > 0 )); then
+      if push_branch; then
+        echo "Pushed pending local commits (${ahead_count}) to ${BRANCH}."
+      else
+        echo "Push retry failed. Will retry on next cycle."
+      fi
+    fi
+    return
+  fi
+
+  # If this branch has no remote ref yet, attempt to publish it.
+  if push_branch; then
+    echo "Published branch ${BRANCH} and pushed local commits."
+  else
+    echo "Branch publish failed. Will retry on next cycle."
+  fi
+}
+
 build_commit_message() {
   local add_count=0
   local update_count=0
@@ -150,6 +178,10 @@ build_commit_message() {
 
 while true; do
   sleep "${INTERVAL}"
+
+  # Retry pushing any local commits that were created earlier but not yet synced.
+  push_pending_commits
+
   CURRENT_STATUS="$(git status --porcelain)"
 
   if [[ -z "${CURRENT_STATUS}" ]]; then
@@ -203,7 +235,7 @@ while true; do
   COMMIT_MESSAGE="$(build_commit_message)"
 
   if git commit -m "${COMMIT_MESSAGE}"; then
-    if git push origin "${BRANCH}"; then
+    if push_branch; then
       echo "Committed and pushed: ${COMMIT_MESSAGE}"
       LAST_STATUS_SNAPSHOT=""
       LAST_CHANGE_EPOCH="0"

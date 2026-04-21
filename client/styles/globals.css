@@ -178,6 +178,13 @@ a {
   flex-wrap: wrap;
 }
 
+.home-deals__section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .home-deals__section-header h3 {
   margin: 0;
   font-size: 1.4rem;
@@ -208,6 +215,16 @@ a {
   color: #a14c2f;
 }
 
+.home-deals__swipe-hint {
+  display: none;
+  border-radius: 999px;
+  background: #fff1ea;
+  color: #d9481f;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .home-deals__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -220,6 +237,43 @@ a {
   background: #fff8f4;
   padding: 1.25rem;
   color: var(--color-muted);
+}
+
+.home-deals__grid .product-card {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .home-deals__swipe-hint {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .home-deals__grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(220px, 76vw);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.4rem;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .home-deals__grid .product-card {
+    scroll-snap-align: start;
+    min-height: 100%;
+  }
+
+  .home-deals__grid::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .home-deals__grid::-webkit-scrollbar-thumb {
+    background: rgba(217, 72, 31, 0.28);
+    border-radius: 999px;
+  }
 }
 
 .card-grid {
