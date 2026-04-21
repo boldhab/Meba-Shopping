@@ -62,10 +62,21 @@ export async function getProducts(params?: {
     const url = `${apiClient.baseUrl}/products${queryString ? `?${queryString}` : ""}`;
 
     const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error("Failed to fetch products");
-    return res.json();
+    if (!res.ok) {
+      const details = await res.text().catch(() => "");
+      console.warn(`Products request failed with status ${res.status}${details ? `: ${details}` : ""}`);
+      return { items: [], total: 0 };
+    }
+
+    const data = (await res.json().catch(() => null)) as { items?: Product[]; total?: number } | null;
+    if (!data || !Array.isArray(data.items) || typeof data.total !== "number") {
+      console.warn("Products response payload is invalid.");
+      return { items: [], total: 0 };
+    }
+
+    return { items: data.items, total: data.total };
   } catch (error) {
-    console.error("Error fetching products:", error);
+    console.warn("Error fetching products:", error);
     return { items: [], total: 0 };
   }
 }
@@ -83,10 +94,21 @@ export async function getActiveDeals(params?: {
     const url = `${apiClient.baseUrl}/products/deals/active${queryString ? `?${queryString}` : ""}`;
     const res = await fetch(url, { cache: "no-store" });
 
-    if (!res.ok) throw new Error("Failed to fetch active deals");
-    return res.json();
+    if (!res.ok) {
+      const details = await res.text().catch(() => "");
+      console.warn(`Active deals request failed with status ${res.status}${details ? `: ${details}` : ""}`);
+      return { items: [], total: 0 };
+    }
+
+    const data = (await res.json().catch(() => null)) as { items?: Product[]; total?: number } | null;
+    if (!data || !Array.isArray(data.items) || typeof data.total !== "number") {
+      console.warn("Active deals response payload is invalid.");
+      return { items: [], total: 0 };
+    }
+
+    return { items: data.items, total: data.total };
   } catch (error) {
-    console.error("Error fetching active deals:", error);
+    console.warn("Error fetching active deals:", error);
     return { items: [], total: 0 };
   }
 }

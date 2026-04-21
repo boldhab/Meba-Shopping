@@ -37,6 +37,7 @@ model User {
   updatedAt    DateTime  @updatedAt
   orders       Order[]
   reviews      Review[]
+  cart         Cart?
 }
 
 model Category {
@@ -65,6 +66,32 @@ model Product {
   category    Category    @relation(fields: [categoryId], references: [id])
   orderItems  OrderItem[]
   reviews     Review[]
+  cartItems   CartItem[]
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id           String   @id @default(cuid())
+  cartId       String
+  productId    String
+  quantity     Int      @default(1)
+  variantId    String?
+  variantKey   String
+  variantLabel String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  cart         Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId, variantKey])
 }
 
 model Order {

@@ -1,10 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Product } from "@/lib/api/products";
+import { useCart } from "@/lib/hooks/useCart";
+import { getProductImageUrls } from "@/lib/utils/productImages";
 import { ProductActions } from "./ProductActions";
 
 export function AddToCart({ product }: { product: Product }) {
+  const router = useRouter();
+  const { addItem } = useCart();
   const canAddToCart = product.stock > 0;
   const variantOptions = [
     { id: "single", label: "Single", units: 1 },
@@ -38,6 +43,29 @@ export function AddToCart({ product }: { product: Product }) {
         : product.stock <= 15
           ? "Limited stock. Ships while available."
           : "In stock and ready to ship.";
+
+  const [coverImage] = getProductImageUrls(product.slug, product.name);
+
+  const handleAddToCart = async () => {
+    if (!canAddToCart) return;
+
+    await addItem({
+      productId: product.id,
+      slug: product.slug,
+      name: product.name,
+      price: Number(product.price),
+      quantity: selectedVariant.units,
+      stock: product.stock,
+      imageUrl: coverImage,
+      variantId: selectedVariant.id,
+      variantLabel: selectedVariant.label,
+    });
+  };
+
+  const handleBuyNow = async () => {
+    await handleAddToCart();
+    router.push("/cart");
+  };
 
   return (
     <section className="product-purchase">
@@ -80,10 +108,10 @@ export function AddToCart({ product }: { product: Product }) {
       </div>
 
       <div className="product-purchase__buttons">
-        <button className="button--ae-buy" type="button" disabled={!canAddToCart}>
+        <button className="button--ae-buy" type="button" disabled={!canAddToCart} onClick={() => void handleBuyNow()}>
           Buy Now
         </button>
-        <button className="button--ae-cart" type="button" disabled={!canAddToCart}>
+        <button className="button--ae-cart" type="button" disabled={!canAddToCart} onClick={() => void handleAddToCart()}>
           Add to Cart
         </button>
       </div>
@@ -116,7 +144,7 @@ export function AddToCart({ product }: { product: Product }) {
           <p className="product-sticky-buy__price">${selectedPrice.toFixed(2)}</p>
           <p className="product-sticky-buy__variant">{selectedVariant.label}</p>
         </div>
-        <button className="product-sticky-buy__button" type="button" disabled={!canAddToCart}>
+        <button className="product-sticky-buy__button" type="button" disabled={!canAddToCart} onClick={() => void handleAddToCart()}>
           Add to Cart
         </button>
       </div>
