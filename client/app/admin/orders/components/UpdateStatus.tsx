@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   adminOrderStatuses,
   type AdminOrder,
@@ -29,6 +29,10 @@ export function UpdateStatus({
   const [selectedStatus, setSelectedStatus] = useState<AdminOrderStatus>(order.status);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedStatus(order.status);
+  }, [order.status]);
 
   const nextStatuses = useMemo(() => allowedTransitions[order.status] ?? [], [order.status]);
 
