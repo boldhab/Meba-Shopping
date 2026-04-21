@@ -93,6 +93,7 @@ export const productRepository = {
   async create(input: {
     name: string;
     slug: string;
+    imageUrl: string | null;
     description: string | null;
     price: number;
     stock: number;
@@ -102,6 +103,7 @@ export const productRepository = {
       data: {
         name: input.name,
         slug: input.slug,
+        imageUrl: input.imageUrl,
         description: input.description,
         price: input.price,
         stock: input.stock,
@@ -116,6 +118,7 @@ export const productRepository = {
     input: {
       name: string;
       slug: string;
+      imageUrl: string | null;
       description: string | null;
       price: number;
       stock: number;
@@ -127,6 +130,7 @@ export const productRepository = {
       data: {
         name: input.name,
         slug: input.slug,
+        imageUrl: input.imageUrl,
         description: input.description,
         price: input.price,
         stock: input.stock,
