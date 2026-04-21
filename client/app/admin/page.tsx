@@ -21,6 +21,19 @@ const statMeta = [
   { key: "lowStockProducts", label: "Low stock" },
 ] as const;
 
+const emptyOverview: AdminOverview = {
+  stats: {
+    totalProducts: 0,
+    activeDeals: 0,
+    totalUsers: 0,
+    totalOrders: 0,
+    lowStockProducts: 0,
+  },
+  lowStockProducts: [],
+  recentOrders: [],
+  recentUsers: [],
+};
+
 export default function AdminPage() {
   const { token, isAuthenticated, user, isLoading: authLoading } = useAuth();
   const [overview, setOverview] = useState<AdminOverview | null>(null);
@@ -53,11 +66,11 @@ export default function AdminPage() {
   }, [token, isAdmin]);
 
   const statCards = useMemo(() => {
-    if (!overview) return [];
+    const safeOverview = overview?.stats ? overview : emptyOverview;
 
     return statMeta.map((item) => ({
       label: item.label,
-      value: overview.stats[item.key],
+      value: safeOverview.stats[item.key],
     }));
   }, [overview]);
 
@@ -121,9 +134,9 @@ export default function AdminPage() {
               <Link href="/admin/orders" className="admin-dashboard__inline-link">View all</Link>
             </div>
 
-            {overview?.recentOrders.length ? (
+            {(overview?.recentOrders ?? []).length ? (
               <div className="admin-dashboard__list">
-                {overview.recentOrders.map((order) => (
+                {(overview?.recentOrders ?? []).map((order) => (
                   <article key={order.id} className="admin-dashboard__list-item">
                     <div>
                       <strong>{order.user.name ?? order.user.email}</strong>
@@ -152,9 +165,9 @@ export default function AdminPage() {
               <Link href="/admin/products" className="admin-dashboard__inline-link">Manage</Link>
             </div>
 
-            {overview?.lowStockProducts.length ? (
+            {(overview?.lowStockProducts ?? []).length ? (
               <div className="admin-dashboard__list">
-                {overview.lowStockProducts.map((product) => (
+                {(overview?.lowStockProducts ?? []).map((product) => (
                   <article key={product.id} className="admin-dashboard__list-item">
                     <div>
                       <strong>{product.name}</strong>
@@ -181,9 +194,9 @@ export default function AdminPage() {
               <Link href="/admin/users" className="admin-dashboard__inline-link">Open users</Link>
             </div>
 
-            {overview?.recentUsers.length ? (
+            {(overview?.recentUsers ?? []).length ? (
               <div className="admin-dashboard__list">
-                {overview.recentUsers.map((account) => (
+                {(overview?.recentUsers ?? []).map((account) => (
                   <article key={account.id} className="admin-dashboard__list-item">
                     <div>
                       <strong>{account.name ?? "Unnamed user"}</strong>
