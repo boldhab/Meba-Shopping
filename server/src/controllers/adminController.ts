@@ -228,7 +228,10 @@ export const adminController = {
         throw new ApiError(400, "Product image is required.");
       }
 
-      const product = await productService.createProduct(payload);
+      const product = await productService.createProduct({
+        ...payload,
+        imageUrl,
+      });
       response.status(201).json(product);
     } catch (error) {
       next(normalizeUploadError(error));
