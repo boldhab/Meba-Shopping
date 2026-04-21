@@ -57,6 +57,15 @@ a {
   margin-bottom: 1rem;
 }
 
+.admin-footer {
+  margin: 0 2rem 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 20px;
+  border: 1px solid #dbe4ef;
+  background: linear-gradient(180deg, #f8fbff, #eef4fb);
+  color: #667085;
+}
+
 .header-nav,
 .hero__actions,
 .card-grid,
@@ -483,6 +492,105 @@ a {
   gap: 1rem;
 }
 
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  margin: 1rem 2rem 0;
+  border-radius: 26px;
+  border: 1px solid #d7e3f2;
+  background: linear-gradient(135deg, #0f172a 0%, #1d4f91 58%, #ffffff 58%, #f8fbff 100%);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.14);
+}
+
+.admin-topbar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  flex-wrap: wrap;
+}
+
+.admin-topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  color: white;
+}
+
+.admin-topbar__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(10px);
+}
+
+.admin-topbar__eyebrow {
+  margin: 0 0 0.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.admin-topbar__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.admin-topbar__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.7rem 0.95rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.admin-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.admin-topbar__user {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  color: #0f172a;
+}
+
+.admin-topbar__user-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #667085;
+}
+
+.admin-topbar__logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid #d7e3f2;
+  border-radius: 999px;
+  background: white;
+  color: #0f172a;
+  padding: 0.7rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .admin-dashboard {
   gap: 1.25rem;
 }
@@ -610,6 +718,33 @@ a {
   margin: 0.25rem 0 0;
   color: #667085;
   font-size: 0.88rem;
+}
+
+@media (max-width: 900px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-topbar {
+    margin: 1rem 1rem 0;
+  }
+
+  .admin-topbar__inner {
+    align-items: stretch;
+  }
+
+  .admin-topbar__nav,
+  .admin-topbar__actions {
+    width: 100%;
+  }
+
+  .admin-topbar__user {
+    align-items: flex-start;
+  }
+
+  .admin-footer {
+    margin: 0 1rem 1rem;
+  }
 }
 
 .products-page {

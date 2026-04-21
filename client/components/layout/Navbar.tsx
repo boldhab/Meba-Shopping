@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useCart } from "@/lib/hooks/useCart";
+import { AdminNavbar } from "./AdminNavbar";
 import {
   ChevronDown,
   Grid3X3,
@@ -110,6 +111,10 @@ export function Navbar() {
       router.push("/products");
     }
   };
+
+  if (pathname?.startsWith("/admin")) {
+    return <AdminNavbar />;
+  }
 
   return (
     <>
