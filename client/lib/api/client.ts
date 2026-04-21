@@ -19,9 +19,12 @@ type RequestOptions = {
 };
 
 export async function requestApi<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json"
-  };
+  const headers: Record<string, string> = {};
+
+  const isFormDataBody = typeof FormData !== "undefined" && options.body instanceof FormData;
+  if (!isFormDataBody) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (options.token) {
     headers.Authorization = `Bearer ${options.token}`;
@@ -30,7 +33,11 @@ export async function requestApi<T>(path: string, options: RequestOptions = {}):
   const response = await fetch(`${apiClient.baseUrl}${path}`, {
     method: options.method ?? "GET",
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: options.body
+      ? isFormDataBody
+        ? options.body as FormData
+        : JSON.stringify(options.body)
+      : undefined,
     cache: "no-store"
   });
 
