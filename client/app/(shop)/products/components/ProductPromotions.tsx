@@ -152,12 +152,3 @@ export function ProductPromotions({
     </div>
   );
 }
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}

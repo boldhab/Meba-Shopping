@@ -108,6 +108,120 @@ a {
   flex-direction: column;
 }
 
+.home-deals {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.home-deals__intro {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.home-deals__eyebrow {
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #d9481f;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.home-deals__description {
+  margin: 0.5rem 0 0;
+  color: var(--color-muted);
+}
+
+.home-deals__link,
+.home-deals__section-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.home-deals__link {
+  background: linear-gradient(135deg, #ff5a36, #ff7a00);
+  color: white;
+  box-shadow: 0 14px 30px rgba(255, 106, 0, 0.2);
+}
+
+.home-deals__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.home-deals__section {
+  background: linear-gradient(180deg, rgba(255, 250, 247, 0.96), rgba(255, 243, 238, 0.96));
+  border: 1px solid #ffd7cb;
+  border-radius: 24px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 16px 35px rgba(120, 58, 21, 0.08);
+}
+
+.home-deals__section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.home-deals__section-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.home-deals__section-header p {
+  margin: 0.3rem 0 0;
+  color: var(--color-muted);
+}
+
+.home-deals__section-tag {
+  margin: 0 0 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: #fff1ea;
+  color: #d9481f;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.home-deals__section-link {
+  border: 1px solid #ffcab8;
+  background: white;
+  color: #a14c2f;
+}
+
+.home-deals__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.home-deals__empty {
+  border: 1px dashed #ffcfbe;
+  border-radius: 18px;
+  background: #fff8f4;
+  padding: 1.25rem;
+  color: var(--color-muted);
+}
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
