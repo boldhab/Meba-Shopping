@@ -557,6 +557,12 @@ a {
   font-weight: 700;
 }
 
+.admin-topbar__link.is-active {
+  background: white;
+  color: #0f172a;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+}
+
 .admin-topbar__actions {
   display: flex;
   align-items: center;

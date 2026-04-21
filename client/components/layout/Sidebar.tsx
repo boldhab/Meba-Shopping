@@ -18,19 +18,27 @@ const links = [
 export function Sidebar() {
   const pathname = usePathname();
 
+  const isLinkActive = (href: string) => {
+    if (href === "/admin") {
+      return pathname === href;
+    }
+
+    return pathname === href || pathname?.startsWith(`${href}/`);
+  };
+
   return (
     <aside className="panel">
       <strong className="mb-3 block">Admin</strong>
       <nav className="space-y-2">
         {links.map((link) => {
-          const isActive = pathname === link.href || pathname?.startsWith(`${link.href}/`);
+          const isActive = isLinkActive(link.href);
           return (
             <Link
               key={link.href}
               href={link.href}
               className={`block rounded px-3 py-2 text-sm transition-colors ${
                 isActive
-                  ? "bg-slate-900 text-white"
+                  ? "bg-[#0f5eb8] text-white shadow-[0_10px_20px_rgba(15,94,184,0.16)]"
                   : "text-slate-700 hover:bg-slate-100"
               }`}
             >

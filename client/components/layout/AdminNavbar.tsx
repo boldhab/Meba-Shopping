@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, LogOut, Package, ShieldCheck, ShoppingCart, Users } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 
@@ -13,6 +13,7 @@ const adminLinks = [
 ];
 
 export function AdminNavbar() {
+  const pathname = usePathname();
   const router = useRouter();
   const { logout, user } = useAuth();
 
@@ -37,8 +38,15 @@ export function AdminNavbar() {
         <nav className="admin-topbar__nav">
           {adminLinks.map((link) => {
             const Icon = link.icon;
+            const isActive = link.href === "/admin"
+              ? pathname === link.href
+              : pathname === link.href || pathname?.startsWith(`${link.href}/`);
             return (
-              <Link key={link.href} href={link.href} className="admin-topbar__link">
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`admin-topbar__link ${isActive ? "is-active" : ""}`}
+              >
                 <Icon className="h-4 w-4" />
                 {link.label}
               </Link>
