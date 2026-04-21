@@ -1,8 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma/client";
+import { normalizeUploadError } from "../middleware/uploadMiddleware";
 import { productService } from "../services/productService";
 import { ApiError } from "../utils/apiError";
+import { uploadImage } from "../utils/uploadImage";
 
 const updateDealSchema = z
   .object({
@@ -213,17 +215,41 @@ export const adminController = {
   async createProduct(request: Request, response: Response, next: NextFunction) {
     try {
       const payload = upsertProductSchema.parse(request.body);
+      const uploadedImage = request.file
+        ? await uploadImage({
+            buffer: request.file.buffer,
+            mimeType: request.file.mimetype,
+            fileName: request.file.originalname,
+          })
+        : null;
+
+      const imageUrl = uploadedImage?.url ?? payload.imageUrl ?? null;
+      if (!imageUrl) {
+        throw new ApiError(400, "Product image is required.");
+      }
+
       const product = await productService.createProduct(payload);
       response.status(201).json(product);
     } catch (error) {
-      next(error);
+      next(normalizeUploadError(error));
     }
   },
 
   async updateProduct(request: Request, response: Response, next: NextFunction) {
     try {
       const payload = upsertProductSchema.parse(request.body);
-      const product = await productService.updateProduct(String(request.params.id), payload);
+      const uploadedImage = request.file
+        ? await uploadImage({
+            buffer: request.file.buffer,
+            mimeType: request.file.mimetype,
+            fileName: request.file.originalname,
+          })
+        : null;
+
+      const product = await productService.updateProduct(String(request.params.id), {
+        ...payload,
+        imageUrl: uploadedImage?.url ?? payload.imageUrl ?? undefined,
+      });
 
       if (!product) {
         throw new ApiError(404, "Product not found.");
@@ -231,7 +257,7 @@ export const adminController = {
 
       response.json(product);
     } catch (error) {
-      next(error);
+      next(normalizeUploadError(error));
     }
   },
 
