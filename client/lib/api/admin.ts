@@ -99,6 +99,7 @@ export async function createAdminProduct(
   input: {
     name: string;
     slug: string;
+    image?: File | null;
     imageUrl?: string | null;
     description?: string | null;
     price: number;
@@ -106,10 +107,27 @@ export async function createAdminProduct(
     categoryId: string;
   }
 ): Promise<AdminProduct> {
+  const formData = new FormData();
+  formData.append("name", input.name);
+  formData.append("slug", input.slug);
+  formData.append("price", String(input.price));
+  formData.append("stock", String(input.stock));
+  formData.append("categoryId", input.categoryId);
+
+  if (input.description) {
+    formData.append("description", input.description);
+  }
+  if (input.imageUrl) {
+    formData.append("imageUrl", input.imageUrl);
+  }
+  if (input.image) {
+    formData.append("image", input.image);
+  }
+
   return requestApi<AdminProduct>("/admin/products", {
     method: "POST",
     token,
-    body: input,
+    body: formData,
   });
 }
 
@@ -119,6 +137,7 @@ export async function updateAdminProduct(
   input: {
     name: string;
     slug: string;
+    image?: File | null;
     imageUrl?: string | null;
     description?: string | null;
     price: number;
@@ -126,10 +145,27 @@ export async function updateAdminProduct(
     categoryId: string;
   }
 ): Promise<AdminProduct> {
+  const formData = new FormData();
+  formData.append("name", input.name);
+  formData.append("slug", input.slug);
+  formData.append("price", String(input.price));
+  formData.append("stock", String(input.stock));
+  formData.append("categoryId", input.categoryId);
+
+  if (input.description) {
+    formData.append("description", input.description);
+  }
+  if (input.imageUrl) {
+    formData.append("imageUrl", input.imageUrl);
+  }
+  if (input.image) {
+    formData.append("image", input.image);
+  }
+
   return requestApi<AdminProduct>(`/admin/products/${productId}`, {
     method: "PATCH",
     token,
-    body: input,
+    body: formData,
   });
 }
 
