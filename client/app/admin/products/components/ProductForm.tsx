@@ -20,6 +20,7 @@ export function ProductForm({ productId }: { productId?: string }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
@@ -44,6 +45,7 @@ export function ProductForm({ productId }: { productId?: string }) {
         if (product) {
           setName(product.name);
           setSlug(product.slug);
+          setImageUrl(product.imageUrl ?? "");
           setDescription(product.description ?? "");
           setPrice(String(product.price));
           setStock(String(product.stock));
@@ -82,6 +84,7 @@ export function ProductForm({ productId }: { productId?: string }) {
       const payload = {
         name: name.trim(),
         slug: slugify(slug),
+        imageUrl: imageUrl.trim() || null,
         description: description.trim() || null,
         price: Number(price),
         stock: Number(stock),
@@ -121,6 +124,17 @@ export function ProductForm({ productId }: { productId?: string }) {
       <label className="label-stack">
         <span>Slug</span>
         <input className="input" value={slug} onChange={(event) => setSlug(event.target.value)} required />
+      </label>
+
+      <label className="label-stack">
+        <span>Image URL (Cloudinary)</span>
+        <input
+          className="input"
+          type="url"
+          placeholder="https://res.cloudinary.com/..."
+          value={imageUrl}
+          onChange={(event) => setImageUrl(event.target.value)}
+        />
       </label>
 
       <label className="label-stack">

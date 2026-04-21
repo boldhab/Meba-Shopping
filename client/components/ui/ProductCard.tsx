@@ -3,7 +3,8 @@ import { Product } from "@/lib/api/products";
 import { getProductImageUrls } from "@/lib/utils/productImages";
 
 export function ProductCard({ product }: { product: Product }) {
-  const [coverImage] = getProductImageUrls(product.slug, product.name);
+  const [fallbackImage] = getProductImageUrls(product.slug, product.name);
+  const coverImage = product.imageUrl ?? fallbackImage;
   const isOutOfStock = product.stock <= 0;
   const productHref = `/products/${product.slug || product.id}`;
   const activeDealType = product.isDealActive ? product.dealType : null;

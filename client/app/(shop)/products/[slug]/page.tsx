@@ -23,7 +23,10 @@ export default async function ProductDetailPage(props: { params: Promise<{ slug:
     notFound();
   }
 
-  const imageUrls = getProductImageUrls(product.slug, product.name);
+  const fallbackImageUrls = getProductImageUrls(product.slug, product.name);
+  const imageUrls = product.imageUrl
+    ? [product.imageUrl, ...fallbackImageUrls.filter((url) => url !== product.imageUrl)]
+    : fallbackImageUrls;
   const reviews = product.reviews ?? [];
   const averageRating = calculateAverageRating(reviews);
   const reviewText = averageRating
