@@ -11,6 +11,7 @@ import {
 	removeCartItem,
 	updateCartItemQuantity,
 } from "@/lib/api/cart";
+import { ApiRequestError } from "@/lib/api/client";
 import { useAuth } from "@/lib/hooks/useAuth";
 
 type CartContextValue = {
@@ -21,6 +22,7 @@ type CartContextValue = {
 	discountAmount: number;
 	total: number;
 	couponCode: string | null;
+	error: string | null;
 	addItem: (item: CartItem) => Promise<void>;
 	updateItemQuantity: (productId: string, variantId: string | undefined, quantity: number) => Promise<void>;
 	removeItem: (productId: string, variantId?: string) => Promise<void>;
@@ -41,12 +43,23 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 	const [cartState, setCartState] = useState<CartState>({ items: [] });
 	const [isLoading, setIsLoading] = useState(true);
 	const [couponCode, setCouponCode] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(null);
+
+	const captureCartError = useCallback((reason: unknown) => {
+		if (reason instanceof ApiRequestError) {
+			setError(reason.message);
+			return;
+		}
+
+		setError("We couldn't update your cart. Please try again.");
+	}, []);
 
 	useEffect(() => {
 		let mounted = true;
 
 		async function loadCart() {
 			setIsLoading(true);
+			setError(null);
 
 			try {
 				const next = token
@@ -55,6 +68,10 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 
 				if (!mounted) return;
 				setCartState(next);
+			} catch (reason) {
+				if (mounted) {
+					captureCartError(reason);
+				}
 			} finally {
 				if (mounted) {
 					setIsLoading(false);
@@ -67,31 +84,55 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 		return () => {
 			mounted = false;
 		};
-	}, [token]);
+	}, [token, captureCartError]);
 
 	const addItem = useCallback(async (item: CartItem) => {
-		const next = await addCartItem(item, token);
-		setCartState(next);
-	}, [token]);
+		try {
+			setError(null);
+			const next = await addCartItem(item, token);
+			setCartState(next);
+		} catch (reason) {
+			captureCartError(reason);
+			throw reason;
+		}
+	}, [token, captureCartError]);
 
 	const updateItemQuantity = useCallback(
 		async (productId: string, variantId: string | undefined, quantity: number) => {
-			const next = await updateCartItemQuantity(productId, variantId, quantity, token);
-			setCartState(next);
+			try {
+				setError(null);
+				const next = await updateCartItemQuantity(productId, variantId, quantity, token);
+				setCartState(next);
+			} catch (reason) {
+				captureCartError(reason);
+				throw reason;
+			}
 		},
-		[token]
+		[token, captureCartError]
 	);
 
 	const removeItem = useCallback(async (productId: string, variantId?: string) => {
-		const next = await removeCartItem(productId, variantId, token);
-		setCartState(next);
-	}, [token]);
+		try {
+			setError(null);
+			const next = await removeCartItem(productId, variantId, token);
+			setCartState(next);
+		} catch (reason) {
+			captureCartError(reason);
+			throw reason;
+		}
+	}, [token, captureCartError]);
 
 	const clearCart = useCallback(async () => {
-		const next = await clearCartApi(token);
-		setCartState(next);
-		setCouponCode(null);
-	}, [token]);
+		try {
+			setError(null);
+			const next = await clearCartApi(token);
+			setCartState(next);
+			setCouponCode(null);
+		} catch (reason) {
+			captureCartError(reason);
+			throw reason;
+		}
+	}, [token, captureCartError]);
 
 	const applyCoupon = useCallback((code: string) => {
 		const normalized = code.trim().toUpperCase();
@@ -129,6 +170,7 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 			discountAmount,
 			total,
 			couponCode,
+			error,
 			addItem,
 			updateItemQuantity,
 			removeItem,
@@ -144,6 +186,7 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 			discountAmount,
 			total,
 			couponCode,
+			error,
 			addItem,
 			updateItemQuantity,
 			removeItem,

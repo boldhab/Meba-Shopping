@@ -1,4 +1,5 @@
 import { requestApi } from "./client";
+import { getProductImageUrls } from "../utils/productImages";
 
 export type CartItem = {
   productId: string;
@@ -14,6 +15,14 @@ export type CartItem = {
 
 export type CartState = {
   items: CartItem[];
+};
+
+type CartApiItem = Omit<CartItem, "imageUrl"> & {
+  imageUrl?: string;
+};
+
+type CartApiResponse = {
+  items?: CartApiItem[];
 };
 
 const CART_STORAGE_KEY = "meba.cart.items";
@@ -54,20 +63,40 @@ function getItemIdentity(item: Pick<CartItem, "productId" | "variantId">) {
   return `${item.productId}::${item.variantId ?? "default"}`;
 }
 
+function normalizeCartItem(item: CartApiItem): CartItem {
+  const [fallbackImageUrl] = getProductImageUrls(item.slug, item.name);
+
+  return {
+    ...item,
+    imageUrl: item.imageUrl ?? fallbackImageUrl,
+  };
+}
+
+function normalizeCartState(payload: CartApiResponse | CartState): CartState {
+  const items = Array.isArray(payload?.items) ? payload.items : [];
+
+  return {
+    items: items
+      .filter((item): item is CartApiItem => typeof item?.productId === "string")
+      .map(normalizeCartItem),
+  };
+}
+
 async function getServerCart(token: string): Promise<CartState> {
-  return requestApi<CartState>("/cart", { token });
+  const payload = await requestApi<CartApiResponse>("/cart", { token });
+  return normalizeCartState(payload);
 }
 
 export async function getCart(token?: string | null): Promise<CartState> {
   if (token) {
     return getServerCart(token);
   }
-  return readCartFromStorage();
+  return normalizeCartState(readCartFromStorage());
 }
 
 export async function addCartItem(item: CartItem, token?: string | null): Promise<CartState> {
   if (token) {
-    return requestApi<CartState>("/cart/items", {
+    const payload = await requestApi<CartApiResponse>("/cart/items", {
       method: "POST",
       token,
       body: {
@@ -77,6 +106,8 @@ export async function addCartItem(item: CartItem, token?: string | null): Promis
         variantLabel: item.variantLabel,
       },
     });
+
+    return normalizeCartState(payload);
   }
 
   const current = readCartFromStorage();
@@ -99,7 +130,7 @@ export async function addCartItem(item: CartItem, token?: string | null): Promis
 
   const nextState = { items: nextItems.filter((entry) => entry.quantity > 0) };
   writeCartToStorage(nextState);
-  return nextState;
+  return normalizeCartState(nextState);
 }
 
 export async function updateCartItemQuantity(
@@ -109,7 +140,7 @@ export async function updateCartItemQuantity(
   token?: string | null
 ): Promise<CartState> {
   if (token) {
-    return requestApi<CartState>("/cart/items", {
+    const payload = await requestApi<CartApiResponse>("/cart/items", {
       method: "PATCH",
       token,
       body: {
@@ -118,6 +149,8 @@ export async function updateCartItemQuantity(
         variantId,
       },
     });
+
+    return normalizeCartState(payload);
   }
 
   const current = readCartFromStorage();
@@ -133,7 +166,7 @@ export async function updateCartItemQuantity(
 
   const nextState = { items: nextItems };
   writeCartToStorage(nextState);
-  return nextState;
+  return normalizeCartState(nextState);
 }
 
 export async function removeCartItem(
@@ -142,7 +175,7 @@ export async function removeCartItem(
   token?: string | null
 ): Promise<CartState> {
   if (token) {
-    return requestApi<CartState>("/cart/items", {
+    const payload = await requestApi<CartApiResponse>("/cart/items", {
       method: "DELETE",
       token,
       body: {
@@ -150,6 +183,8 @@ export async function removeCartItem(
         variantId,
       },
     });
+
+    return normalizeCartState(payload);
   }
 
   const current = readCartFromStorage();
@@ -158,20 +193,22 @@ export async function removeCartItem(
     items: current.items.filter((item) => getItemIdentity(item) !== targetKey),
   };
   writeCartToStorage(nextState);
-  return nextState;
+  return normalizeCartState(nextState);
 }
 
 export async function clearCart(token?: string | null): Promise<CartState> {
   if (token) {
-    return requestApi<CartState>("/cart/clear", {
+    const payload = await requestApi<CartApiResponse>("/cart/clear", {
       method: "DELETE",
       token,
     });
+
+    return normalizeCartState(payload);
   }
 
   const nextState = { items: [] };
   writeCartToStorage(nextState);
-  return nextState;
+  return normalizeCartState(nextState);
 }
 
 export async function mergeGuestCartToServer(token: string): Promise<CartState> {
@@ -180,7 +217,7 @@ export async function mergeGuestCartToServer(token: string): Promise<CartState> 
     return getServerCart(token);
   }
 
-  const merged = await requestApi<CartState>("/cart/merge", {
+  const merged = await requestApi<CartApiResponse>("/cart/merge", {
     method: "POST",
     token,
     body: {
@@ -194,5 +231,5 @@ export async function mergeGuestCartToServer(token: string): Promise<CartState> 
   });
 
   clearCartStorage();
-  return merged;
+  return normalizeCartState(merged);
 }

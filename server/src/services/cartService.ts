@@ -8,6 +8,34 @@ type MergeCartItemInput = {
 	variantLabel?: string | null;
 };
 
+export function requireProductId(productId?: string) {
+	if (!productId?.trim()) {
+		throw new ApiError(400, "productId is required.");
+	}
+
+	return productId;
+}
+
+export function normalizeAddQuantity(quantity?: number) {
+	const safeQuantity = Math.floor(quantity ?? 1);
+
+	if (!Number.isFinite(safeQuantity) || safeQuantity < 1) {
+		throw new ApiError(400, "quantity must be at least 1.");
+	}
+
+	return safeQuantity;
+}
+
+export function normalizeUpdateQuantity(quantity?: number) {
+	const safeQuantity = Math.floor(quantity ?? 0);
+
+	if (!Number.isFinite(safeQuantity) || safeQuantity < 0) {
+		throw new ApiError(400, "quantity must be 0 or greater.");
+	}
+
+	return safeQuantity;
+}
+
 export const cartService = {
 	async getUserCart(userId: string) {
 		return cartRepository.getCartByUserId(userId);
@@ -17,13 +45,9 @@ export const cartService = {
 		userId: string,
 		input: { productId?: string; quantity?: number; variantId?: string | null; variantLabel?: string | null }
 	) {
-		if (!input.productId) {
-			throw new ApiError(400, "productId is required.");
-		}
-
 		return cartRepository.addItem(userId, {
-			productId: input.productId,
-			quantity: input.quantity ?? 1,
+			productId: requireProductId(input.productId),
+			quantity: normalizeAddQuantity(input.quantity),
 			variantId: input.variantId,
 			variantLabel: input.variantLabel,
 		});
@@ -33,24 +57,16 @@ export const cartService = {
 		userId: string,
 		input: { productId?: string; quantity?: number; variantId?: string | null }
 	) {
-		if (!input.productId) {
-			throw new ApiError(400, "productId is required.");
-		}
-
 		return cartRepository.updateItemQuantity(userId, {
-			productId: input.productId,
-			quantity: input.quantity ?? 0,
+			productId: requireProductId(input.productId),
+			quantity: normalizeUpdateQuantity(input.quantity),
 			variantId: input.variantId,
 		});
 	},
 
 	async removeItem(userId: string, input: { productId?: string; variantId?: string | null }) {
-		if (!input.productId) {
-			throw new ApiError(400, "productId is required.");
-		}
-
 		return cartRepository.removeItem(userId, {
-			productId: input.productId,
+			productId: requireProductId(input.productId),
 			variantId: input.variantId,
 		});
 	},
@@ -61,11 +77,11 @@ export const cartService = {
 
 	async mergeGuestCart(userId: string, items: MergeCartItemInput[]) {
 		for (const item of items) {
-			if (!item.productId) continue;
+			if (!item.productId?.trim()) continue;
 
 			await cartRepository.addItem(userId, {
 				productId: item.productId,
-				quantity: Math.max(1, item.quantity ?? 1),
+				quantity: normalizeAddQuantity(item.quantity),
 				variantId: item.variantId,
 				variantLabel: item.variantLabel,
 			});
