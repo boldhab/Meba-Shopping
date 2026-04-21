@@ -37,8 +37,64 @@ export type AdminOverview = {
   }>;
 };
 
+export type AdminOrder = {
+  id: string;
+  status: "PENDING" | "PAID" | "PACKED" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  totalAmount: number;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+  items: Array<{
+    id: string;
+    quantity: number;
+    unitPrice: number;
+    productId: string;
+    product: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  }>;
+};
+
+export type AdminUser = {
+  id: string;
+  name: string | null;
+  email: string;
+  role: "CUSTOMER" | "ADMIN";
+  createdAt: string;
+  updatedAt: string;
+  orderCount: number;
+  reviewCount: number;
+};
+
+export type AdminUserDetail = AdminUser & {
+  recentOrders: AdminOrder[];
+};
+
 export async function getAdminOverview(token: string): Promise<AdminOverview> {
   return requestApi<AdminOverview>("/admin", { token });
+}
+
+export async function getAdminOrders(token: string): Promise<{ items: AdminOrder[]; total: number }> {
+  return requestApi<{ items: AdminOrder[]; total: number }>("/admin/orders", { token });
+}
+
+export async function getAdminOrder(token: string, orderId: string): Promise<AdminOrder> {
+  return requestApi<AdminOrder>(`/admin/orders/${orderId}`, { token });
+}
+
+export async function getAdminUsers(token: string): Promise<{ items: AdminUser[]; total: number }> {
+  return requestApi<{ items: AdminUser[]; total: number }>("/admin/users", { token });
+}
+
+export async function getAdminUser(token: string, userId: string): Promise<AdminUserDetail> {
+  return requestApi<AdminUserDetail>(`/admin/users/${userId}`, { token });
 }
 
 export async function getAdminDeals(token: string): Promise<{ items: Product[]; total: number }> {

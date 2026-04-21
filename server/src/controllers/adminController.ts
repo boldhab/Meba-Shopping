@@ -128,6 +128,183 @@ export const adminController = {
     }
   },
 
+  async listOrders(_request: Request, response: Response, next: NextFunction) {
+    try {
+      const orders = await prisma.order.findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      response.json({
+        items: orders.map((order) => ({
+          ...order,
+          totalAmount: Number(order.totalAmount),
+          items: order.items.map((item) => ({
+            ...item,
+            unitPrice: Number(item.unitPrice),
+          })),
+        })),
+        total: orders.length,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getOrder(request: Request, response: Response, next: NextFunction) {
+    try {
+      const order = await prisma.order.findUnique({
+        where: { id: String(request.params.id) },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              createdAt: true,
+            },
+          },
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!order) {
+        throw new ApiError(404, "Order not found.");
+      }
+
+      response.json({
+        ...order,
+        totalAmount: Number(order.totalAmount),
+        items: order.items.map((item) => ({
+          ...item,
+          unitPrice: Number(item.unitPrice),
+        })),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async listUsers(_request: Request, response: Response, next: NextFunction) {
+    try {
+      const users = await prisma.user.findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+          _count: {
+            select: {
+              orders: true,
+              reviews: true,
+            },
+          },
+        },
+      });
+
+      response.json({
+        items: users.map((user) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          orderCount: user._count.orders,
+          reviewCount: user._count.reviews,
+        })),
+        total: users.length,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getUser(request: Request, response: Response, next: NextFunction) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: String(request.params.id) },
+        include: {
+          orders: {
+            orderBy: { createdAt: "desc" },
+            take: 10,
+            include: {
+              items: {
+                include: {
+                  product: {
+                    select: {
+                      id: true,
+                      name: true,
+                      slug: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              orders: true,
+              reviews: true,
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        throw new ApiError(404, "User not found.");
+      }
+
+      response.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        orderCount: user._count.orders,
+        reviewCount: user._count.reviews,
+        recentOrders: user.orders.map((order) => ({
+          ...order,
+          totalAmount: Number(order.totalAmount),
+          items: order.items.map((item) => ({
+            ...item,
+            unitPrice: Number(item.unitPrice),
+          })),
+        })),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async updateDeal(request: Request, response: Response, next: NextFunction) {
     try {
       const payload = updateDealSchema.parse(request.body);
