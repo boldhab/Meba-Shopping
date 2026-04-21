@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
+import { prisma } from "../prisma/client";
 import { productService } from "../services/productService";
 import { ApiError } from "../utils/apiError";
 
@@ -25,8 +26,97 @@ const updateDealSchema = z
   );
 
 export const adminController = {
-  async overview(_request: Request, response: Response) {
-    response.json({ resource: "admin" });
+  async overview(_request: Request, response: Response, next: NextFunction) {
+    try {
+      const now = new Date();
+      const lowStockThreshold = 10;
+
+      const [
+        totalProducts,
+        activeDeals,
+        totalUsers,
+        totalOrders,
+        lowStockProducts,
+        recentOrders,
+        recentUsers,
+      ] = await Promise.all([
+        prisma.product.count(),
+        prisma.product.count({
+          where: {
+            isDealActive: true,
+            AND: [
+              {
+                OR: [{ dealStartAt: null }, { dealStartAt: { lte: now } }],
+              },
+              {
+                OR: [{ dealEndAt: null }, { dealEndAt: { gte: now } }],
+              },
+            ],
+          },
+        }),
+        prisma.user.count(),
+        prisma.order.count(),
+        prisma.product.findMany({
+          where: { stock: { lte: lowStockThreshold } },
+          orderBy: [{ stock: "asc" }, { updatedAt: "desc" }],
+          take: 5,
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            stock: true,
+            dealType: true,
+            isDealActive: true,
+          },
+        }),
+        prisma.order.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: {
+            id: true,
+            status: true,
+            totalAmount: true,
+            createdAt: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        }),
+        prisma.user.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            createdAt: true,
+          },
+        }),
+      ]);
+
+      response.json({
+        stats: {
+          totalProducts,
+          activeDeals,
+          totalUsers,
+          totalOrders,
+          lowStockProducts: lowStockProducts.length,
+        },
+        lowStockProducts,
+        recentOrders: recentOrders.map((order) => ({
+          ...order,
+          totalAmount: Number(order.totalAmount),
+        })),
+        recentUsers,
+      });
+    } catch (error) {
+      next(error);
+    }
   },
 
   async listDeals(_request: Request, response: Response, next: NextFunction) {

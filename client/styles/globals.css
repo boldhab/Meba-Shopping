@@ -483,6 +483,135 @@ a {
   gap: 1rem;
 }
 
+.admin-dashboard {
+  gap: 1.25rem;
+}
+
+.admin-dashboard__hero {
+  border-radius: 26px;
+  border: 1px solid #d8e2f0;
+  background: linear-gradient(135deg, #10253f 0%, #1f4670 52%, #f7f9fc 52%, #ffffff 100%);
+  padding: 1.5rem;
+  color: white;
+  box-shadow: 0 20px 40px rgba(16, 37, 63, 0.12);
+}
+
+.admin-dashboard__eyebrow {
+  margin: 0 0 0.45rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.admin-dashboard__description {
+  margin: 0.55rem 0 0;
+  max-width: 52rem;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.admin-dashboard__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.admin-dashboard__stat-card {
+  background: linear-gradient(180deg, #ffffff, #f7f9fc);
+  border: 1px solid #dbe4ef;
+  border-radius: 22px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+}
+
+.admin-dashboard__stat-label {
+  margin: 0;
+  color: #667085;
+  font-size: 0.85rem;
+}
+
+.admin-dashboard__stat-value {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 1.8rem;
+  color: #101828;
+}
+
+.admin-dashboard__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+  gap: 1rem;
+}
+
+.admin-dashboard__main,
+.admin-dashboard__side,
+.admin-dashboard__section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-dashboard__section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-dashboard__inline-link {
+  color: #0f5eb8;
+  font-weight: 700;
+}
+
+.admin-dashboard__quick-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+
+.admin-dashboard__quick-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border: 1px solid #dbe4ef;
+  border-radius: 18px;
+  background: #f8fbff;
+  padding: 1rem;
+}
+
+.admin-dashboard__quick-link strong {
+  color: #101828;
+}
+
+.admin-dashboard__quick-link span {
+  color: #667085;
+  font-size: 0.92rem;
+}
+
+.admin-dashboard__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-dashboard__list-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: #f8fbff;
+  border: 1px solid #dbe4ef;
+}
+
+.admin-dashboard__list-item p {
+  margin: 0.25rem 0 0;
+  color: #667085;
+  font-size: 0.88rem;
+}
+
 .products-page {
   gap: 1.25rem;
 }
