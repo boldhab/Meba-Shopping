@@ -20,7 +20,8 @@ export function ProductForm({ productId }: { productId?: string }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
@@ -45,7 +46,7 @@ export function ProductForm({ productId }: { productId?: string }) {
         if (product) {
           setName(product.name);
           setSlug(product.slug);
-          setImageUrl(product.imageUrl ?? "");
+          setExistingImageUrl(product.imageUrl ?? "");
           setDescription(product.description ?? "");
           setPrice(String(product.price));
           setStock(String(product.stock));
@@ -77,6 +78,11 @@ export function ProductForm({ productId }: { productId?: string }) {
     event.preventDefault();
     if (!token) return;
 
+    if (!productId && !imageFile) {
+      setError("Product image is required.");
+      return;
+    }
+
     setIsSaving(true);
     setError(null);
 
@@ -84,7 +90,8 @@ export function ProductForm({ productId }: { productId?: string }) {
       const payload = {
         name: name.trim(),
         slug: slugify(slug),
-        imageUrl: imageUrl.trim() || null,
+        image: imageFile,
+        imageUrl: existingImageUrl || null,
         description: description.trim() || null,
         price: Number(price),
         stock: Number(stock),
@@ -127,15 +134,25 @@ export function ProductForm({ productId }: { productId?: string }) {
       </label>
 
       <label className="label-stack">
-        <span>Image URL (Cloudinary)</span>
+        <span>Product Image</span>
         <input
           className="input"
-          type="url"
-          placeholder="https://res.cloudinary.com/..."
-          value={imageUrl}
-          onChange={(event) => setImageUrl(event.target.value)}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+          onChange={(event) => {
+            const file = event.target.files?.[0] ?? null;
+            setImageFile(file);
+          }}
+          required={!productId}
         />
       </label>
+
+      {existingImageUrl ? (
+        <div className="label-stack">
+          <span>Current Image</span>
+          <img src={existingImageUrl} alt={`${name || "Product"} preview`} className="max-h-40 w-auto rounded-lg border border-(--color-border)" />
+        </div>
+      ) : null}
 
       <label className="label-stack">
         <span>Description</span>
