@@ -99,6 +99,7 @@ export async function createAdminProduct(
   input: {
     name: string;
     slug: string;
+    imageUrl?: string | null;
     description?: string | null;
     price: number;
     stock: number;
@@ -118,6 +119,7 @@ export async function updateAdminProduct(
   input: {
     name: string;
     slug: string;
+    imageUrl?: string | null;
     description?: string | null;
     price: number;
     stock: number;
