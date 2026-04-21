@@ -63,11 +63,6 @@ export function LoginForm() {
 
     try {
       await login({ email, password });
-      if (nextPath) {
-        router.push(nextPath);
-      } else {
-        router.push("/account");
-      }
     } catch (submitError) {
       if (submitError instanceof Error) {
         setError(submitError.message);
@@ -89,7 +84,7 @@ export function LoginForm() {
     }
 
     goToPostLoginPage();
-  }, [isAuthenticated, user, nextPath]);
+  }, [goToPostLoginPage, isAuthenticated, user]);
 
   return (
     <section className="mx-auto w-full max-w-2xl rounded-3xl border border-[var(--color-border)] bg-[rgba(255,253,248,0.94)] p-8 shadow-[0_14px_40px_rgba(31,29,26,0.08)]">
