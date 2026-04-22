@@ -9,7 +9,17 @@ export function ProductGallery({
   imageUrls: string[];
   productName: string;
 }) {
-  const [selectedImage, setSelectedImage] = useState(imageUrls[0]);
+  const [selectedImage, setSelectedImage] = useState(imageUrls[0] ?? "");
+
+  if (imageUrls.length === 0) {
+    return (
+      <section className="product-gallery panel" aria-label={`${productName} image gallery`}>
+        <div className="product-gallery__main flex items-center justify-center rounded-[28px] border border-dashed border-(--color-border) bg-(--color-surface) p-8 text-sm text-(--color-muted)">
+          No product image has been uploaded yet.
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="product-gallery panel" aria-label={`${productName} image gallery`}>

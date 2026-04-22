@@ -1,5 +1,4 @@
 import { requestApi } from "./client";
-import { getProductImageUrls } from "../utils/productImages";
 
 export type CartItem = {
   productId: string;
@@ -64,11 +63,8 @@ function getItemIdentity(item: Pick<CartItem, "productId" | "variantId">) {
 }
 
 function normalizeCartItem(item: CartApiItem): CartItem {
-  const [fallbackImageUrl] = getProductImageUrls(item.slug, item.name);
-
   return {
     ...item,
-    imageUrl: item.imageUrl ?? fallbackImageUrl,
   };
 }
 

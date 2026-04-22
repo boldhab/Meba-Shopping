@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createAdminProduct, getAdminProduct, updateAdminProduct } from "@/lib/api/admin";
 import { getCategories, type Category } from "@/lib/api/products";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { ImageUpload } from "./ImageUpload";
 
 function slugify(value: string) {
   return value
@@ -133,26 +134,14 @@ export function ProductForm({ productId }: { productId?: string }) {
         <input className="input" value={slug} onChange={(event) => setSlug(event.target.value)} required />
       </label>
 
-      <label className="label-stack">
-        <span>Product Image</span>
-        <input
-          className="input"
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
-          onChange={(event) => {
-            const file = event.target.files?.[0] ?? null;
-            setImageFile(file);
-          }}
-          required={!productId}
-        />
-      </label>
-
-      {existingImageUrl ? (
-        <div className="label-stack">
-          <span>Current Image</span>
-          <img src={existingImageUrl} alt={`${name || "Product"} preview`} className="max-h-40 w-auto rounded-lg border border-(--color-border)" />
-        </div>
-      ) : null}
+      <ImageUpload
+        label="Product Image"
+        file={imageFile}
+        existingImageUrl={existingImageUrl}
+        required={!productId}
+        productName={name}
+        onChange={setImageFile}
+      />
 
       <label className="label-stack">
         <span>Description</span>

@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { Product } from "@/lib/api/products";
-import { getProductImageUrls } from "@/lib/utils/productImages";
+import { getProductPlaceholderImage } from "@/lib/utils/productImages";
 
 export function ProductCard({ product }: { product: Product }) {
-  const [fallbackImage] = getProductImageUrls(product.slug, product.name);
-  const coverImage = product.imageUrl ?? fallbackImage;
+  const coverImage = product.imageUrl ?? getProductPlaceholderImage();
   const isOutOfStock = product.stock <= 0;
   const productHref = `/products/${product.slug || product.id}`;
   const activeDealType = product.isDealActive ? product.dealType : null;

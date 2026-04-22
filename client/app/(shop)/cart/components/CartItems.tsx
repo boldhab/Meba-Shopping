@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ShieldCheck, Store, Trash2, Truck } from "lucide-react";
 import { useCart } from "@/lib/hooks/useCart";
 import { formatPrice } from "@/lib/utils/formatPrice";
+import { getProductPlaceholderImage } from "@/lib/utils/productImages";
 
 export function CartItems() {
   const { items, isLoading, updateItemQuantity, removeItem, error } = useCart();
@@ -14,7 +15,7 @@ export function CartItems() {
 
   if (items.length === 0) {
     return (
-      <div className="panel grid gap-4 rounded-[24px] border border-[#ffe0d5] bg-[linear-gradient(180deg,#fffaf7_0%,#fff3ee_100%)]">
+      <div className="panel grid gap-4 rounded-3xl border border-[#ffe0d5] bg-[linear-gradient(180deg,#fffaf7_0%,#fff3ee_100%)]">
         <div className="grid gap-1">
           <h2 className="m-0 text-2xl">Your cart is empty</h2>
           <p className="m-0 text-sm text-(--color-muted)">Browse the marketplace and add a few deals to get started.</p>
@@ -43,10 +44,10 @@ export function CartItems() {
       {items.map((item) => (
         <article
           key={`${item.productId}-${item.variantId ?? "default"}`}
-          className="grid gap-4 overflow-hidden rounded-[24px] border border-[#ffd9cf] bg-[linear-gradient(180deg,#ffffff_0%,#fff8f5_100%)] p-4 shadow-[0_16px_40px_rgba(135,65,24,0.08)] md:grid-cols-[128px_1fr]"
+          className="grid gap-4 overflow-hidden rounded-3xl border border-[#ffd9cf] bg-[linear-gradient(180deg,#ffffff_0%,#fff8f5_100%)] p-4 shadow-[0_16px_40px_rgba(135,65,24,0.08)] md:grid-cols-[128px_1fr]"
         >
           <img
-            src={item.imageUrl}
+            src={item.imageUrl ?? getProductPlaceholderImage()}
             alt={item.name}
             className="h-32 w-full rounded-[20px] object-cover md:w-32"
           />

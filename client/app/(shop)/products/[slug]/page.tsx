@@ -7,7 +7,6 @@ import { ReviewSection } from "./components/ReviewSection";
 import { ProductFaq } from "./components/ProductFaq";
 import { ProductQA } from "./components/ProductQA";
 import { RelatedProducts } from "./components/RelatedProducts";
-import { getProductImageUrls } from "@/lib/utils/productImages";
 
 function calculateAverageRating(reviews: ProductReview[]) {
   if (reviews.length === 0) return null;
@@ -23,10 +22,7 @@ export default async function ProductDetailPage(props: { params: Promise<{ slug:
     notFound();
   }
 
-  const fallbackImageUrls = getProductImageUrls(product.slug, product.name);
-  const imageUrls = product.imageUrl
-    ? [product.imageUrl, ...fallbackImageUrls.filter((url) => url !== product.imageUrl)]
-    : fallbackImageUrls;
+  const imageUrls = product.imageUrl ? [product.imageUrl] : [];
   const reviews = product.reviews ?? [];
   const averageRating = calculateAverageRating(reviews);
   const reviewText = averageRating

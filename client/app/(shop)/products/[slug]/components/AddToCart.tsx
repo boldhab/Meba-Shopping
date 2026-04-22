@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Product } from "@/lib/api/products";
 import { useCart } from "@/lib/hooks/useCart";
-import { getProductImageUrls } from "@/lib/utils/productImages";
 import { ProductActions } from "./ProductActions";
 
 export function AddToCart({ product }: { product: Product }) {
@@ -44,9 +43,6 @@ export function AddToCart({ product }: { product: Product }) {
           ? "Limited stock. Ships while available."
           : "In stock and ready to ship.";
 
-  const [fallbackImage] = getProductImageUrls(product.slug, product.name);
-  const coverImage = product.imageUrl ?? fallbackImage;
-
   const handleAddToCart = async () => {
     if (!canAddToCart) return;
 
@@ -57,7 +53,7 @@ export function AddToCart({ product }: { product: Product }) {
       price: Number(product.price),
       quantity: selectedVariant.units,
       stock: product.stock,
-      imageUrl: coverImage,
+      imageUrl: product.imageUrl ?? undefined,
       variantId: selectedVariant.id,
       variantLabel: selectedVariant.label,
     });
