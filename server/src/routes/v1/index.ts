@@ -10,6 +10,7 @@ import { paymentRoutes } from "./paymentRoutes";
 import { productRoutes } from "./productRoutes";
 import { reviewRoutes } from "./reviewRoutes";
 import { userRoutes } from "./userRoutes";
+import { qaRoutes } from "./qaRoutes";
 
 export const apiV1Router = Router();
 
@@ -22,5 +23,6 @@ apiV1Router.use("/categories", categoryRoutes);
 apiV1Router.use("/payments", paymentRoutes);
 apiV1Router.use("/coupons", couponRoutes);
 apiV1Router.use("/reviews", reviewRoutes);
+apiV1Router.use("/qa", qaRoutes);
 apiV1Router.use("/admin", adminRoutes);
 apiV1Router.use("/analytics", analyticsRoutes);
