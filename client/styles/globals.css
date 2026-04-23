@@ -50,7 +50,7 @@ a {
 .panel,
 .state-card,
 .hero__content {
-  background: rgba(255, 253, 248, 0.9);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 20px;
 }
@@ -110,10 +110,10 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--color-accent);
+  border: 1px solid var(--color-action);
   border-radius: 999px;
   padding: 0.75rem 1rem;
-  background: var(--color-accent);
+  background: var(--color-action);
   color: white;
 }
 
@@ -184,7 +184,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-shadow: 0 16px 35px rgba(120, 58, 21, 0.08);
+  box-shadow: 0 16px 35px rgba(37, 99, 235, 0.08);
 }
 
 .home-deals__section-header {
@@ -312,8 +312,8 @@ a {
 
 .auth-card--login {
   background:
-    radial-gradient(circle at top, rgba(14, 122, 83, 0.08), transparent 42%),
-    rgba(255, 253, 248, 0.94);
+    radial-gradient(circle at top, rgba(37, 99, 235, 0.08), transparent 42%),
+    var(--color-surface);
 }
 
 .auth-login__header {
