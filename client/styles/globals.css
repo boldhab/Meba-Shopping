@@ -2,6 +2,14 @@
 
 :root {
   color-scheme: light;
+  --color-primary: #2563eb;
+  --color-accent: #2563eb;
+  --color-action: #f97316;
+  --color-background: #f9fafb;
+  --color-surface: #ffffff;
+  --color-text: #111827;
+  --color-border: #e5e7eb;
+  --color-muted: #6b7280;
 }
 
 * {
@@ -498,9 +506,9 @@ a {
   z-index: 40;
   margin: 1rem 2rem 0;
   border-radius: 26px;
-  border: 1px solid #d7e3f2;
-  background: linear-gradient(135deg, #0f172a 0%, #1d4f91 58%, #ffffff 58%, #f8fbff 100%);
-  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.14);
+  border: 1px solid var(--color-border);
+  background: linear-gradient(135deg, var(--color-primary) 0%, #1d4f91 58%, #ffffff 58%, #f8fbff 100%);
+  box-shadow: 0 18px 50px rgba(37, 99, 235, 0.14);
 }
 
 .admin-topbar__inner {
@@ -559,8 +567,8 @@ a {
 
 .admin-topbar__link.is-active {
   background: white;
-  color: #0f172a;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+  color: var(--color-primary);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.14);
 }
 
 .admin-topbar__actions {
@@ -603,11 +611,11 @@ a {
 
 .admin-dashboard__hero {
   border-radius: 26px;
-  border: 1px solid #d8e2f0;
-  background: linear-gradient(135deg, #10253f 0%, #1f4670 52%, #f7f9fc 52%, #ffffff 100%);
+  border: 1px solid var(--color-border);
+  background: linear-gradient(135deg, var(--color-primary) 0%, #1e40af 52%, var(--color-background) 52%, #ffffff 100%);
   padding: 1.5rem;
   color: white;
-  box-shadow: 0 20px 40px rgba(16, 37, 63, 0.12);
+  box-shadow: 0 20px 40px rgba(37, 99, 235, 0.12);
 }
 
 .admin-dashboard__eyebrow {
@@ -675,7 +683,7 @@ a {
 }
 
 .admin-dashboard__inline-link {
-  color: #0f5eb8;
+  color: var(--color-primary);
   font-weight: 700;
 }
 
