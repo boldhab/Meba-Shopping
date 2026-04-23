@@ -51,6 +51,8 @@ model User {
   orders       Order[]
   reviews      Review[]
   cart         Cart?
+  questions    Question[]
+  answers      Answer[]
 }
 
 model Category {
@@ -89,6 +91,7 @@ model Product {
   orderItems        OrderItem[]
   reviews           Review[]
   cartItems         CartItem[]
+  questions         Question[]
 }
 
 model Cart {
