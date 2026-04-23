@@ -149,6 +149,30 @@ model Review {
   product   Product      @relation(fields: [productId], references: [id])
 }
 
+model Question {
+  id        String       @id @default(cuid())
+  text      String
+  status    ReviewStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  userId    String
+  productId String
+  user      User         @relation(fields: [userId], references: [id])
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  answers   Answer[]
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  text       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  userId     String
+  questionId String
+  user       User     @relation(fields: [userId], references: [id])
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
 model Coupon {
   id              String    @id @default(cuid())
   code            String    @unique
