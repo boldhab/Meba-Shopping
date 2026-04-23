@@ -11,6 +11,7 @@ const quickLinks = [
   { href: "/admin/deals", label: "Manage deals", description: "Launch or update Daily, Weekly, Clearance, and Ceremony deals." },
   { href: "/admin/orders", label: "Review orders", description: "Track order flow and monitor recent activity." },
   { href: "/admin/reviews", label: "Moderate reviews", description: "Approve or reject customer feedback." },
+  { href: "/admin/qa", label: "Moderate Q&A", description: "Answer customer inquiries." },
   { href: "/admin/users", label: "View users", description: "Keep an eye on the latest customers and admins." },
 ];
 
