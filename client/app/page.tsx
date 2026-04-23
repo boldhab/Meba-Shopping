@@ -54,15 +54,11 @@ export default async function HomePage() {
   const groupedDeals = groupDeals(dealsResult.items);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f9fafb' }}>
+    <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="relative overflow-hidden" style={{ backgroundColor: '#2563eb' }}>
+      <div className="relative overflow-hidden bg-blue-600">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800"></div>
         <div className="absolute inset-0 bg-black opacity-10"></div>
-        <div className="absolute inset-0">
-          <div className="absolute top-0 -left-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
-          <div className="absolute top-0 -right-4 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
-          <div className="absolute -bottom-8 left-20 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
-        </div>
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
           <div className="text-center lg:text-left">
@@ -72,7 +68,7 @@ export default async function HomePage() {
             </div>
             <h1 className="text-4xl lg:text-6xl font-bold text-white mb-6 leading-tight">
               Your Premier Shopping<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-200 to-yellow-200">
+              <span className="text-orange-400">
                 Experience
               </span>
             </h1>
@@ -109,21 +105,20 @@ export default async function HomePage() {
         {/* Deals Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
           <div>
-            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+            <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
               <span>🎯</span>
               Live Deal Sections
             </div>
-            <h2 className="text-3xl lg:text-4xl font-bold mb-3" style={{ color: '#111827' }}>
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
               Shop Each Deal Category
             </h2>
-            <p className="text-lg max-w-2xl" style={{ color: '#6b7280' }}>
+            <p className="text-lg text-gray-600 max-w-2xl">
               Preview today's active offers by section, then jump straight into the full promotions view for that category.
             </p>
           </div>
           <Link
             href="/promotions"
-            className="group px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:scale-105 flex items-center gap-2"
-            style={{ backgroundColor: '#f97316', color: '#ffffff' }}
+            className="group bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:scale-105 flex items-center gap-2 shadow-md"
           >
             View All Deals
             <span className="group-hover:translate-x-1 transition-transform">→</span>
@@ -139,36 +134,34 @@ export default async function HomePage() {
             return (
               <div 
                 key={dealType} 
-                className="rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden"
-                style={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb' }}
+                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200"
               >
                 {/* Section Header */}
-                <div className="p-6" style={{ borderBottom: '1px solid #e5e7eb' }}>
+                <div className="p-6 border-b border-gray-100">
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex-1">
-                      <div className="inline-flex items-center gap-2 text-sm font-semibold px-3 py-1 rounded-full mb-3" style={{ color: '#2563eb', backgroundColor: '#eff6ff' }}>
+                      <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 text-sm font-semibold px-3 py-1.5 rounded-full mb-3">
                         <span>{icon}</span>
                         {DEAL_TYPE_LABELS[dealType]}
                       </div>
-                      <h3 className="text-2xl font-bold mb-2" style={{ color: '#111827' }}>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2">
                         {DEAL_TYPE_LABELS[dealType]}
                       </h3>
-                      <p style={{ color: '#6b7280' }}>
+                      <p className="text-gray-600">
                         {DEAL_TYPE_SUMMARIES[dealType]}
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
-                      <div className="hidden md:flex items-center gap-2 text-sm" style={{ color: '#9ca3af' }}>
+                      <div className="hidden md:flex items-center gap-2 text-sm text-gray-400">
                         <span>⇀</span>
                         Swipe to explore
                       </div>
                       <Link
                         href={`/promotions?type=${dealType}`}
-                        className="group inline-flex items-center gap-2 font-medium transition-colors"
-                        style={{ color: '#6b7280' }}
+                        className="group inline-flex items-center gap-2 text-gray-500 hover:text-orange-500 font-medium transition-colors"
                       >
                         Open section
-                        <span className="group-hover:translate-x-1 transition-transform" style={{ color: '#f97316' }}>→</span>
+                        <span className="group-hover:translate-x-1 transition-transform">→</span>
                       </Link>
                     </div>
                   </div>
@@ -183,12 +176,12 @@ export default async function HomePage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 rounded-xl" style={{ backgroundColor: '#f9fafb' }}>
+                    <div className="text-center py-12 bg-gray-50 rounded-xl">
                       <div className="text-6xl mb-4">🛍️</div>
-                      <p className="font-medium" style={{ color: '#6b7280' }}>
+                      <p className="font-medium text-gray-500">
                         No active {DEAL_TYPE_LABELS[dealType].toLowerCase()} right now.
                       </p>
-                      <p className="text-sm mt-1" style={{ color: '#9ca3af' }}>
+                      <p className="text-sm text-gray-400 mt-1">
                         Check back soon for great offers!
                       </p>
                     </div>
@@ -201,39 +194,39 @@ export default async function HomePage() {
       </div>
 
       {/* Footer */}
-      <footer className="mt-20 py-12" style={{ backgroundColor: '#ffffff', borderTop: '1px solid #e5e7eb' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <footer className="mt-20 bg-white border-t border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="font-bold mb-4" style={{ color: '#111827' }}>Meba Shopping</h3>
-              <p className="text-sm" style={{ color: '#6b7280' }}>Your premier shopping destination for amazing deals.</p>
+              <h3 className="text-gray-900 font-bold mb-4">Meba Shopping</h3>
+              <p className="text-sm text-gray-600">Your premier shopping destination for amazing deals.</p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4" style={{ color: '#111827' }}>Quick Links</h4>
-              <ul className="space-y-2 text-sm" style={{ color: '#6b7280' }}>
-                <li><Link href="/products">Products</Link></li>
-                <li><Link href="/promotions">Promotions</Link></li>
-                <li><Link href="/cart">Cart</Link></li>
+              <h4 className="text-gray-900 font-semibold mb-4">Quick Links</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li><Link href="/products" className="hover:text-blue-600 transition-colors">Products</Link></li>
+                <li><Link href="/promotions" className="hover:text-blue-600 transition-colors">Promotions</Link></li>
+                <li><Link href="/cart" className="hover:text-blue-600 transition-colors">Cart</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4" style={{ color: '#111827' }}>Support</h4>
-              <ul className="space-y-2 text-sm" style={{ color: '#6b7280' }}>
-                <li><Link href="/help">Help Center</Link></li>
-                <li><Link href="/contact">Contact Us</Link></li>
-                <li><Link href="/returns">Returns</Link></li>
+              <h4 className="text-gray-900 font-semibold mb-4">Support</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li><Link href="/help" className="hover:text-blue-600 transition-colors">Help Center</Link></li>
+                <li><Link href="/contact" className="hover:text-blue-600 transition-colors">Contact Us</Link></li>
+                <li><Link href="/returns" className="hover:text-blue-600 transition-colors">Returns</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4" style={{ color: '#111827' }}>Follow Us</h4>
+              <h4 className="text-gray-900 font-semibold mb-4">Follow Us</h4>
               <div className="flex gap-4">
-                <a href="#" className="text-2xl" style={{ color: '#2563eb' }}>📘</a>
-                <a href="#" className="text-2xl" style={{ color: '#2563eb' }}>📷</a>
-                <a href="#" className="text-2xl" style={{ color: '#2563eb' }}>🐦</a>
+                <a href="#" className="text-2xl text-gray-600 hover:text-blue-600 transition-colors">📘</a>
+                <a href="#" className="text-2xl text-gray-600 hover:text-blue-600 transition-colors">📷</a>
+                <a href="#" className="text-2xl text-gray-600 hover:text-blue-600 transition-colors">🐦</a>
               </div>
             </div>
           </div>
-          <div className="mt-8 pt-8 text-center text-sm" style={{ borderTop: '1px solid #e5e7eb', color: '#9ca3af' }}>
+          <div className="mt-8 pt-8 text-center text-sm text-gray-500 border-t border-gray-100">
             © 2024 Meba Shopping. All rights reserved.
           </div>
         </div>
