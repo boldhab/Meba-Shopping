@@ -96,7 +96,7 @@ export default async function ProductDetailPage(props: { params: Promise<{ slug:
 
       <div className="product-detail-extras">
         <ProductFaq />
-        <ProductQA />
+        <ProductQA productId={product.id} />
       </div>
 
       <RelatedProducts products={relatedProducts} />
