@@ -1321,19 +1321,19 @@ a {
 }
 
 .button--ae-cart {
-  background: #ffefe6;
-  border: 2px solid #f97316;
-  color: #f97316;
+  background: #eff6ff;
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
 }
 
 .button--ae-cart:hover {
-  background: #ffe3d1;
+  background: #dbeafe;
 }
 
 .button--ae-buy {
-  background: linear-gradient(90deg, #ff7700 0%, #f97316 100%);
+  background: linear-gradient(90deg, #fb923c 0%, var(--color-action) 100%);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(255, 80, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
 }
 
 .button--ae-buy:hover {
