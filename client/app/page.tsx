@@ -160,7 +160,7 @@ export default function HomePage() {
           className="absolute bottom-20 -right-20 w-96 h-96 bg-orange-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20"
         />
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+        <div className="relative max-w-none px-6 md:px-12 lg:px-16 py-20 lg:py-28">
           <motion.div 
             className="text-center lg:text-left"
             variants={staggerContainer}
@@ -257,7 +257,7 @@ export default function HomePage() {
         whileInView="visible"
         viewport={{ once: true, amount: 0.1 }}
         variants={staggerContainer}
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
+        className="max-w-none px-6 md:px-12 lg:px-16 py-12"
       >
         {/* Deals Header */}
         <motion.div variants={fadeInUp} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
@@ -443,7 +443,7 @@ export default function HomePage() {
         viewport={{ once: true }}
         className="bg-gradient-to-r from-blue-600 to-blue-700 mt-20 py-16"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-none px-6 md:px-12 lg:px-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
               { number: "10K+", label: "Happy Customers", icon: "😊" },
@@ -489,7 +489,7 @@ export default function HomePage() {
         viewport={{ once: true }}
         className="mt-20 bg-white border-t border-gray-200"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-none px-6 md:px-12 lg:px-16 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <motion.div
               whileHover={{ y: -5 }}
