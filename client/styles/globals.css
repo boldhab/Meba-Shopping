@@ -1441,7 +1441,7 @@ a {
 .product-sticky-buy__button {
   border: none;
   border-radius: 999px;
-  background: linear-gradient(90deg, #ff7700 0%, #f97316 100%);
+  background: linear-gradient(90deg, #fb923c 0%, var(--color-action) 100%);
   color: #fff;
   font-weight: 700;
   padding: 0.6rem 1rem;
