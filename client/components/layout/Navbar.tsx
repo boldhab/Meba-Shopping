@@ -125,7 +125,7 @@ export function Navbar() {
       >
         {/* Top Bar */}
         <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white">
-          <div className="mx-auto flex h-8 max-w-7xl items-center justify-between px-4 text-[11px] sm:px-6 lg:px-8">
+          <div className="mx-auto flex h-8 max-w-none items-center justify-between px-6 md:px-12 lg:px-16 text-[11px]">
             <div className="flex items-center gap-4">
               <Truck className="h-3 w-3" />
               <p className="hidden sm:block">Free shipping on orders over 1000 ETB</p>
@@ -149,7 +149,7 @@ export function Navbar() {
 
         {/* Main Header */}
         <div className={`bg-white transition-all duration-300 ${isScrolled ? "border-b border-slate-200" : ""}`}>
-          <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto flex h-16 max-w-none items-center gap-4 px-6 md:px-12 lg:px-16">
             {/* Logo */}
             <Link href="/" className="flex shrink-0 items-center gap-2 group">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-md group-hover:shadow-lg transition-all">
@@ -339,7 +339,7 @@ export function Navbar() {
 
         {/* Bottom Navigation Bar */}
         <div className="border-t border-slate-200 bg-white">
-          <div className="mx-auto flex h-11 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto flex h-11 max-w-none items-center justify-between px-6 md:px-12 lg:px-16">
             {/* Categories Dropdown */}
             <div className="relative" ref={categoriesRef}>
               <button
