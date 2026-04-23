@@ -63,24 +63,32 @@ model Category {
 }
 
 model Product {
-  id          String      @id @default(cuid())
-  name        String
-  slug        String      @unique
-  imageUrl    String?
-  description String?
-  price       Decimal     @db.Decimal(10, 2)
-  stock       Int         @default(0)
-  dealType    DealType?
-  isDealActive Boolean    @default(false)
-  dealStartAt DateTime?
-  dealEndAt   DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  categoryId  String
-  category    Category    @relation(fields: [categoryId], references: [id])
-  orderItems  OrderItem[]
-  reviews     Review[]
-  cartItems   CartItem[]
+  id                String        @id @default(cuid())
+  name              String
+  slug              String        @unique
+  imageUrl          String?
+  description       String?
+  price             Decimal       @db.Decimal(10, 2)
+  stock             Int           @default(0)
+  status            ProductStatus @default(DRAFT)
+  dealType          DealType?
+  isDealActive      Boolean       @default(false)
+  dealStartAt       DateTime?
+  dealEndAt         DateTime?
+  isFeatured        Boolean       @default(false)
+  allowBackorder    Boolean       @default(false)
+  lowStockThreshold Int           @default(10)
+  seoTitle          String?
+  seoDescription    String?
+  seoKeywords       String?
+  attributes        Json?         @default("{}")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  categoryId        String
+  category          Category      @relation(fields: [categoryId], references: [id])
+  orderItems        OrderItem[]
+  reviews           Review[]
+  cartItems         CartItem[]
 }
 
 model Cart {
@@ -130,14 +138,15 @@ model OrderItem {
 }
 
 model Review {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   rating    Int
   comment   String?
-  createdAt DateTime @default(now())
+  status    ReviewStatus @default(PENDING)
+  createdAt DateTime     @default(now())
   userId    String
   productId String
-  user      User     @relation(fields: [userId], references: [id])
-  product   Product  @relation(fields: [productId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
+  product   Product      @relation(fields: [productId], references: [id])
 }
 
 model Coupon {

@@ -1,15 +1,14 @@
 import { productRepository } from "../repositories/productRepository";
 import { categoryRepository } from "../repositories/categoryRepository";
 import { ApiError } from "../utils/apiError";
+import { ProductStatus, DealType } from "@prisma/client";
 
 const DEAL_TYPES = ["DAILY", "WEEKLY", "CLEARANCE", "CEREMONY"] as const;
-
-type DealType = (typeof DEAL_TYPES)[number];
 
 function parseDealType(input?: string): DealType | undefined {
   if (!input) return undefined;
   const normalized = input.toUpperCase();
-  return DEAL_TYPES.find((type) => type === normalized);
+  return DEAL_TYPES.find((type) => type === normalized) as DealType | undefined;
 }
 
 function parseBoolean(input?: string): boolean | undefined {
@@ -42,6 +41,7 @@ export const productService = {
       dealsOnly: parseBoolean(query.dealsOnly),
       skip,
       take,
+      status: ProductStatus.ACTIVE, // Publicly show only active products
     });
   },
 
@@ -61,15 +61,16 @@ export const productService = {
       dealsOnly: true,
       take: Number.isFinite(take) ? take : 100,
       skip: 0,
+      status: ProductStatus.ACTIVE,
     });
   },
 
   async listProductsForAdminDeals() {
-    return productRepository.findAll({ take: 300, skip: 0 });
+    return productRepository.findAll({ take: 300, skip: 0, includeInactive: true });
   },
 
   async listProductsForAdmin() {
-    return productRepository.findAll({ take: 300, skip: 0 });
+    return productRepository.findAll({ take: 300, skip: 0, includeInactive: true });
   },
 
   async createProduct(input: {
@@ -80,11 +81,20 @@ export const productService = {
     price: number;
     stock: number;
     categoryId: string;
+    status?: ProductStatus;
+    isFeatured?: boolean;
+    allowBackorder?: boolean;
+    lowStockThreshold?: number;
+    seoTitle?: string | null;
+    seoDescription?: string | null;
+    seoKeywords?: string | null;
+    attributes?: any;
   }) {
     const existingProduct = await productRepository.findAll({
       search: input.slug,
       take: 300,
       skip: 0,
+      includeInactive: true,
     });
     const category = await categoryRepository.findById(input.categoryId);
 
@@ -97,26 +107,30 @@ export const productService = {
     }
 
     return productRepository.create({
-      name: input.name,
-      slug: input.slug,
+      ...input,
       imageUrl: input.imageUrl?.trim() || null,
       description: input.description?.trim() || null,
-      price: input.price,
-      stock: input.stock,
-      categoryId: input.categoryId,
     });
   },
 
   async updateProduct(
     productId: string,
     input: {
-      name: string;
-      slug: string;
+      name?: string;
+      slug?: string;
       imageUrl?: string | null;
       description?: string | null;
-      price: number;
-      stock: number;
-      categoryId: string;
+      price?: number;
+      stock?: number;
+      categoryId?: string;
+      status?: ProductStatus;
+      isFeatured?: boolean;
+      allowBackorder?: boolean;
+      lowStockThreshold?: number;
+      seoTitle?: string | null;
+      seoDescription?: string | null;
+      seoKeywords?: string | null;
+      attributes?: any;
     }
   ) {
     const existing = await productRepository.findById(productId);
@@ -124,29 +138,30 @@ export const productService = {
       return null;
     }
 
-    const category = await categoryRepository.findById(input.categoryId);
-    if (!category) {
-      throw new ApiError(404, "Category not found.");
+    if (input.categoryId) {
+      const category = await categoryRepository.findById(input.categoryId);
+      if (!category) {
+        throw new ApiError(404, "Category not found.");
+      }
     }
 
-    const slugMatches = await productRepository.findAll({
-      search: input.slug,
-      take: 300,
-      skip: 0,
-    });
+    if (input.slug) {
+      const slugMatches = await productRepository.findAll({
+        search: input.slug,
+        take: 300,
+        skip: 0,
+        includeInactive: true,
+      });
 
-    if (slugMatches.items.some((item) => item.slug === input.slug && item.id !== productId)) {
-      throw new ApiError(409, "A product with that slug already exists.");
+      if (slugMatches.items.some((item) => item.slug === input.slug && item.id !== productId)) {
+        throw new ApiError(409, "A product with that slug already exists.");
+      }
     }
 
     return productRepository.updateById(productId, {
-      name: input.name,
-      slug: input.slug,
-      imageUrl: input.imageUrl?.trim() || null,
-      description: input.description?.trim() || null,
-      price: input.price,
-      stock: input.stock,
-      categoryId: input.categoryId,
+      ...input,
+      imageUrl: input.imageUrl === undefined ? undefined : input.imageUrl?.trim() || null,
+      description: input.description === undefined ? undefined : input.description?.trim() || null,
     });
   },
 
@@ -181,10 +196,14 @@ export const productService = {
           : existing.dealEndAt;
 
     return productRepository.updateDealByProductId(productId, {
-      dealType: parsedDealType,
+      dealType: parsedDealType as DealType | null,
       isDealActive,
       dealStartAt,
       dealEndAt,
     });
+  },
+
+  async deleteProduct(productId: string) {
+    return productRepository.deleteById(productId);
   },
 };

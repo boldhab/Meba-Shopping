@@ -80,7 +80,26 @@ export type AdminUserDetail = AdminUser & {
   recentOrders: AdminOrder[];
 };
 
-export type AdminProduct = Product;
+export type AdminProduct = Product & {
+  status: "ACTIVE" | "INACTIVE" | "DRAFT" | "ARCHIVED";
+  isFeatured: boolean;
+  allowBackorder: boolean;
+  lowStockThreshold: number;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  seoKeywords: string | null;
+  attributes: any;
+};
+
+export type AdminReview = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  createdAt: string;
+  user: { id: string; name: string | null; email: string };
+  product: { id: string; name: string; slug: string };
+};
 
 export async function getAdminOverview(token: string): Promise<AdminOverview> {
   return requestApi<AdminOverview>("/admin", { token });
@@ -105,6 +124,14 @@ export async function createAdminProduct(
     price: number;
     stock: number;
     categoryId: string;
+    status?: string;
+    isFeatured?: boolean;
+    allowBackorder?: boolean;
+    lowStockThreshold?: number;
+    seoTitle?: string | null;
+    seoDescription?: string | null;
+    seoKeywords?: string | null;
+    attributes?: any;
   }
 ): Promise<AdminProduct> {
   const formData = new FormData();
@@ -114,15 +141,17 @@ export async function createAdminProduct(
   formData.append("stock", String(input.stock));
   formData.append("categoryId", input.categoryId);
 
-  if (input.description) {
-    formData.append("description", input.description);
-  }
-  if (input.imageUrl) {
-    formData.append("imageUrl", input.imageUrl);
-  }
-  if (input.image) {
-    formData.append("image", input.image);
-  }
+  if (input.description) formData.append("description", input.description);
+  if (input.imageUrl) formData.append("imageUrl", input.imageUrl);
+  if (input.image) formData.append("image", input.image);
+  if (input.status) formData.append("status", input.status);
+  if (input.isFeatured !== undefined) formData.append("isFeatured", String(input.isFeatured));
+  if (input.allowBackorder !== undefined) formData.append("allowBackorder", String(input.allowBackorder));
+  if (input.lowStockThreshold !== undefined) formData.append("lowStockThreshold", String(input.lowStockThreshold));
+  if (input.seoTitle) formData.append("seoTitle", input.seoTitle);
+  if (input.seoDescription) formData.append("seoDescription", input.seoDescription);
+  if (input.seoKeywords) formData.append("seoKeywords", input.seoKeywords);
+  if (input.attributes) formData.append("attributes", JSON.stringify(input.attributes));
 
   return requestApi<AdminProduct>("/admin/products", {
     method: "POST",
@@ -135,37 +164,76 @@ export async function updateAdminProduct(
   token: string,
   productId: string,
   input: {
-    name: string;
-    slug: string;
+    name?: string;
+    slug?: string;
     image?: File | null;
     imageUrl?: string | null;
     description?: string | null;
-    price: number;
-    stock: number;
-    categoryId: string;
+    price?: number;
+    stock?: number;
+    categoryId?: string;
+    status?: string;
+    isFeatured?: boolean;
+    allowBackorder?: boolean;
+    lowStockThreshold?: number;
+    seoTitle?: string | null;
+    seoDescription?: string | null;
+    seoKeywords?: string | null;
+    attributes?: any;
   }
 ): Promise<AdminProduct> {
   const formData = new FormData();
-  formData.append("name", input.name);
-  formData.append("slug", input.slug);
-  formData.append("price", String(input.price));
-  formData.append("stock", String(input.stock));
-  formData.append("categoryId", input.categoryId);
-
-  if (input.description) {
-    formData.append("description", input.description);
-  }
-  if (input.imageUrl) {
-    formData.append("imageUrl", input.imageUrl);
-  }
-  if (input.image) {
-    formData.append("image", input.image);
-  }
+  if (input.name) formData.append("name", input.name);
+  if (input.slug) formData.append("slug", input.slug);
+  if (input.price !== undefined) formData.append("price", String(input.price));
+  if (input.stock !== undefined) formData.append("stock", String(input.stock));
+  if (input.categoryId) formData.append("categoryId", input.categoryId);
+  if (input.description !== undefined) formData.append("description", input.description || "");
+  if (input.imageUrl !== undefined) formData.append("imageUrl", input.imageUrl || "");
+  if (input.image) formData.append("image", input.image);
+  if (input.status) formData.append("status", input.status);
+  if (input.isFeatured !== undefined) formData.append("isFeatured", String(input.isFeatured));
+  if (input.allowBackorder !== undefined) formData.append("allowBackorder", String(input.allowBackorder));
+  if (input.lowStockThreshold !== undefined) formData.append("lowStockThreshold", String(input.lowStockThreshold));
+  if (input.seoTitle !== undefined) formData.append("seoTitle", input.seoTitle || "");
+  if (input.seoDescription !== undefined) formData.append("seoDescription", input.seoDescription || "");
+  if (input.seoKeywords !== undefined) formData.append("seoKeywords", input.seoKeywords || "");
+  if (input.attributes !== undefined) formData.append("attributes", JSON.stringify(input.attributes));
 
   return requestApi<AdminProduct>(`/admin/products/${productId}`, {
     method: "PATCH",
     token,
     body: formData,
+  });
+}
+
+export async function deleteAdminProduct(token: string, productId: string): Promise<void> {
+  return requestApi<void>(`/admin/products/${productId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+export async function getAdminReviews(token: string): Promise<{ items: AdminReview[]; total: number }> {
+  return requestApi<{ items: AdminReview[]; total: number }>("/admin/reviews", { token });
+}
+
+export async function updateAdminReviewStatus(
+  token: string,
+  reviewId: string,
+  status: "PENDING" | "APPROVED" | "REJECTED"
+): Promise<AdminReview> {
+  return requestApi<AdminReview>(`/admin/reviews/${reviewId}/status`, {
+    method: "PATCH",
+    token,
+    body: { status },
+  });
+}
+
+export async function deleteAdminReview(token: string, reviewId: string): Promise<void> {
+  return requestApi<void>(`/admin/reviews/${reviewId}`, {
+    method: "DELETE",
+    token,
   });
 }
 

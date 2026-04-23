@@ -11,6 +11,7 @@ adminRoutes.get("/products", authMiddleware, adminMiddleware, adminController.li
 adminRoutes.get("/products/:id", authMiddleware, adminMiddleware, adminController.getProduct);
 adminRoutes.post("/products", authMiddleware, adminMiddleware, productImageUpload, adminController.createProduct);
 adminRoutes.patch("/products/:id", authMiddleware, adminMiddleware, productImageUpload, adminController.updateProduct);
+adminRoutes.delete("/products/:id", authMiddleware, adminMiddleware, adminController.deleteProduct);
 adminRoutes.get("/deals", authMiddleware, adminMiddleware, adminController.listDeals);
 adminRoutes.get("/orders", authMiddleware, adminMiddleware, adminController.listOrders);
 adminRoutes.get("/orders/:id", authMiddleware, adminMiddleware, adminController.getOrder);
@@ -18,3 +19,8 @@ adminRoutes.patch("/orders/:id/status", authMiddleware, adminMiddleware, adminCo
 adminRoutes.get("/users", authMiddleware, adminMiddleware, adminController.listUsers);
 adminRoutes.get("/users/:id", authMiddleware, adminMiddleware, adminController.getUser);
 adminRoutes.patch("/deals/:id", authMiddleware, adminMiddleware, adminController.updateDeal);
+
+// Reviews Moderation
+adminRoutes.get("/reviews", authMiddleware, adminMiddleware, adminController.listReviews);
+adminRoutes.patch("/reviews/:id/status", authMiddleware, adminMiddleware, adminController.updateReviewStatus);
+adminRoutes.delete("/reviews/:id", authMiddleware, adminMiddleware, adminController.deleteReview);

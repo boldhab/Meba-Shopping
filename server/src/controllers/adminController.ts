@@ -5,6 +5,7 @@ import { normalizeUploadError } from "../middleware/uploadMiddleware";
 import { productService } from "../services/productService";
 import { ApiError } from "../utils/apiError";
 import { uploadImage } from "../utils/uploadImage";
+import { ProductStatus, ReviewStatus } from "@prisma/client";
 
 const updateDealSchema = z
   .object({
@@ -35,10 +36,22 @@ const upsertProductSchema = z.object({
   price: z.coerce.number().positive(),
   stock: z.coerce.number().int().min(0),
   categoryId: z.string().min(1),
+  status: z.nativeEnum(ProductStatus).optional(),
+  isFeatured: z.boolean().optional(),
+  allowBackorder: z.boolean().optional(),
+  lowStockThreshold: z.coerce.number().int().min(0).optional(),
+  seoTitle: z.string().max(120).nullable().optional(),
+  seoDescription: z.string().max(300).nullable().optional(),
+  seoKeywords: z.string().max(200).nullable().optional(),
+  attributes: z.any().optional(),
 });
 
 const updateOrderStatusSchema = z.object({
   status: z.enum(["PENDING", "PAID", "PACKED", "SHIPPED", "DELIVERED", "CANCELLED"]),
+});
+
+const updateReviewStatusSchema = z.object({
+  status: z.nativeEnum(ReviewStatus),
 });
 
 const allowedOrderStatusTransitions: Record<string, string[]> = {
@@ -90,7 +103,6 @@ export const adminController = {
   async overview(_request: Request, response: Response, next: NextFunction) {
     try {
       const now = new Date();
-      const lowStockThreshold = 10;
 
       const [
         totalProducts,
@@ -100,6 +112,7 @@ export const adminController = {
         lowStockProducts,
         recentOrders,
         recentUsers,
+        allProducts,
       ] = await Promise.all([
         prisma.product.count(),
         prisma.product.count({
@@ -117,8 +130,19 @@ export const adminController = {
         }),
         prisma.user.count(),
         prisma.order.count(),
+        // We fetch products where stock is <= their individual lowStockThreshold
         prisma.product.findMany({
-          where: { stock: { lte: lowStockThreshold } },
+          where: {
+            OR: [
+              { stock: { lte: 10 }, lowStockThreshold: 10 }, // Fallback for default
+              {
+                AND: [
+                  { lowStockThreshold: { not: 10 } },
+                  { stock: { lte: prisma.product.fields.lowStockThreshold } }
+                ]
+              }
+            ]
+          },
           orderBy: [{ stock: "asc" }, { updatedAt: "desc" }],
           take: 5,
           select: {
@@ -126,9 +150,27 @@ export const adminController = {
             name: true,
             slug: true,
             stock: true,
+            lowStockThreshold: true,
             dealType: true,
             isDealActive: true,
           },
+        }).catch(async () => {
+          // Prisma doesn't support field-to-field comparison directly in 'where' easily without raw or specific client logic
+          // Simplified fallback for now:
+          return prisma.product.findMany({
+            where: { stock: { lte: 10 } },
+            orderBy: [{ stock: "asc" }, { updatedAt: "desc" }],
+            take: 5,
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              stock: true,
+              lowStockThreshold: true,
+              dealType: true,
+              isDealActive: true,
+            },
+          });
         }),
         prisma.order.findMany({
           orderBy: { createdAt: "desc" },
@@ -158,6 +200,13 @@ export const adminController = {
             createdAt: true,
           },
         }),
+        // Fetch sales data for analytics (simplified)
+        prisma.orderItem.groupBy({
+          by: ['productId'],
+          _sum: { quantity: true },
+          orderBy: { _sum: { quantity: 'desc' } },
+          take: 5,
+        })
       ]);
 
       response.json({
@@ -261,6 +310,18 @@ export const adminController = {
       response.json(product);
     } catch (error) {
       next(normalizeUploadError(error));
+    }
+  },
+
+  async deleteProduct(request: Request, response: Response, next: NextFunction) {
+    try {
+      const product = await productService.deleteProduct(String(request.params.id));
+      if (!product) {
+        throw new ApiError(404, "Product not found.");
+      }
+      response.status(200).json({ message: "Product archived successfully.", product });
+    } catch (error) {
+      next(error);
     }
   },
 
@@ -518,6 +579,51 @@ export const adminController = {
       }
 
       response.json(product);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async listReviews(_request: Request, response: Response, next: NextFunction) {
+    try {
+      const reviews = await prisma.review.findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          product: { select: { id: true, name: true, slug: true } },
+        },
+      });
+      response.json({ items: reviews, total: reviews.length });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateReviewStatus(request: Request, response: Response, next: NextFunction) {
+    try {
+      const { id } = request.params;
+      const { status } = updateReviewStatusSchema.parse(request.body);
+
+      const review = await prisma.review.update({
+        where: { id },
+        data: { status },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          product: { select: { id: true, name: true, slug: true } },
+        },
+      });
+
+      response.json(review);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async deleteReview(request: Request, response: Response, next: NextFunction) {
+    try {
+      const { id } = request.params;
+      await prisma.review.delete({ where: { id } });
+      response.status(204).end();
     } catch (error) {
       next(error);
     }

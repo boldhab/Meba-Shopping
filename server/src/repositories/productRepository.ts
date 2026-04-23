@@ -1,4 +1,5 @@
 import { prisma } from "../prisma/client";
+import { ProductStatus, DealType } from "@prisma/client";
 
 function buildActiveDealClauses(now: Date) {
   return [
@@ -24,12 +25,27 @@ export const productRepository = {
     search?: string;
     minPrice?: number;
     maxPrice?: number;
-    dealType?: "DAILY" | "WEEKLY" | "CLEARANCE" | "CEREMONY";
+    dealType?: DealType;
     dealsOnly?: boolean;
+    status?: ProductStatus;
+    isFeatured?: boolean;
     skip?: number;
     take?: number;
+    includeInactive?: boolean;
   } = {}) {
-    const { categoryId, search, minPrice, maxPrice, dealType, dealsOnly, skip = 0, take = 20 } = params;
+    const { 
+      categoryId, 
+      search, 
+      minPrice, 
+      maxPrice, 
+      dealType, 
+      dealsOnly, 
+      status, 
+      isFeatured,
+      skip = 0, 
+      take = 20,
+      includeInactive = false
+    } = params;
 
     const where: any = {};
     const andClauses: any[] = [];
@@ -52,6 +68,16 @@ export const productRepository = {
 
     if (dealType) {
       where.dealType = dealType;
+    }
+
+    if (isFeatured !== undefined) {
+      where.isFeatured = isFeatured;
+    }
+
+    if (status) {
+      where.status = status;
+    } else if (!includeInactive) {
+      where.status = ProductStatus.ACTIVE;
     }
 
     if (dealsOnly) {
@@ -79,7 +105,13 @@ export const productRepository = {
   async findBySlug(slug: string) {
     return prisma.product.findUnique({
       where: { slug },
-      include: { category: true, reviews: { include: { user: true } } },
+      include: { 
+        category: true, 
+        reviews: { 
+          where: { status: "APPROVED" },
+          include: { user: true } 
+        } 
+      },
     });
   },
 
@@ -98,6 +130,14 @@ export const productRepository = {
     price: number;
     stock: number;
     categoryId: string;
+    status?: ProductStatus;
+    isFeatured?: boolean;
+    allowBackorder?: boolean;
+    lowStockThreshold?: number;
+    seoTitle?: string | null;
+    seoDescription?: string | null;
+    seoKeywords?: string | null;
+    attributes?: any;
   }) {
     return prisma.product.create({
       data: {
@@ -108,6 +148,14 @@ export const productRepository = {
         price: input.price,
         stock: input.stock,
         categoryId: input.categoryId,
+        status: input.status || ProductStatus.DRAFT,
+        isFeatured: input.isFeatured ?? false,
+        allowBackorder: input.allowBackorder ?? false,
+        lowStockThreshold: input.lowStockThreshold ?? 10,
+        seoTitle: input.seoTitle,
+        seoDescription: input.seoDescription,
+        seoKeywords: input.seoKeywords,
+        attributes: input.attributes || {},
       },
       include: { category: true },
     });
@@ -116,13 +164,21 @@ export const productRepository = {
   async updateById(
     id: string,
     input: {
-      name: string;
-      slug: string;
-      imageUrl: string | null;
-      description: string | null;
-      price: number;
-      stock: number;
-      categoryId: string;
+      name?: string;
+      slug?: string;
+      imageUrl?: string | null;
+      description?: string | null;
+      price?: number;
+      stock?: number;
+      categoryId?: string;
+      status?: ProductStatus;
+      isFeatured?: boolean;
+      allowBackorder?: boolean;
+      lowStockThreshold?: number;
+      seoTitle?: string | null;
+      seoDescription?: string | null;
+      seoKeywords?: string | null;
+      attributes?: any;
     }
   ) {
     return prisma.product.update({
@@ -135,6 +191,14 @@ export const productRepository = {
         price: input.price,
         stock: input.stock,
         categoryId: input.categoryId,
+        status: input.status,
+        isFeatured: input.isFeatured,
+        allowBackorder: input.allowBackorder,
+        lowStockThreshold: input.lowStockThreshold,
+        seoTitle: input.seoTitle,
+        seoDescription: input.seoDescription,
+        seoKeywords: input.seoKeywords,
+        attributes: input.attributes,
       },
       include: { category: true },
     });
@@ -143,7 +207,7 @@ export const productRepository = {
   async updateDealByProductId(
     id: string,
     input: {
-      dealType: "DAILY" | "WEEKLY" | "CLEARANCE" | "CEREMONY" | null;
+      dealType: DealType | null;
       isDealActive: boolean;
       dealStartAt: Date | null;
       dealEndAt: Date | null;
@@ -158,6 +222,20 @@ export const productRepository = {
         dealEndAt: input.dealEndAt,
       },
       include: { category: true },
+    });
+  },
+
+  async deleteById(id: string) {
+    // Soft delete by setting status to ARCHIVED
+    return prisma.product.update({
+      where: { id },
+      data: { status: ProductStatus.ARCHIVED },
+    });
+  },
+
+  async permanentlyDeleteById(id: string) {
+    return prisma.product.delete({
+      where: { id },
     });
   },
 };
