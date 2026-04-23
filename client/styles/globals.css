@@ -143,7 +143,7 @@ a {
   margin: 0 0 0.35rem;
   text-transform: uppercase;
   letter-spacing: 0.18em;
-  color: #d9481f;
+  color: #f97316;
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -165,9 +165,9 @@ a {
 }
 
 .home-deals__link {
-  background: linear-gradient(135deg, #ff5a36, #ff7a00);
+  background: linear-gradient(135deg, var(--color-action), #ea580c);
   color: white;
-  box-shadow: 0 14px 30px rgba(255, 106, 0, 0.2);
+  box-shadow: 0 14px 30px rgba(249, 115, 22, 0.2);
 }
 
 .home-deals__sections {
@@ -219,7 +219,7 @@ a {
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
   background: #fff1ea;
-  color: #d9481f;
+  color: #f97316;
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -236,7 +236,7 @@ a {
   display: none;
   border-radius: 999px;
   background: #fff1ea;
-  color: #d9481f;
+  color: #f97316;
   padding: 0.55rem 0.85rem;
   font-size: 0.78rem;
   font-weight: 700;
@@ -340,9 +340,9 @@ a {
   align-items: center;
   justify-content: center;
   border-radius: 16px;
-  background: linear-gradient(135deg, var(--color-accent), #0a5f41);
+  background: linear-gradient(135deg, var(--color-primary), #1e40af);
   color: #fff;
-  box-shadow: 0 14px 30px rgba(14, 122, 83, 0.2);
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.2);
 }
 
 .auth-login__error {
@@ -1000,13 +1000,13 @@ a {
 
 .product-gallery__thumb:hover,
 .product-gallery__thumb.is-selected {
-  border-color: #ff5000;
+  border-color: #f97316;
   box-shadow: 0 10px 22px rgba(255, 80, 0, 0.14);
   transform: translateY(-1px);
 }
 
 .product-gallery__thumb[data-selected="true"] {
-  border-color: #ff5000;
+  border-color: #f97316;
 }
 
 .product-detail-content {
@@ -1049,7 +1049,7 @@ a {
   align-items: center;
   gap: 0.35rem;
   font-size: 0.95rem;
-  color: #ff5000;
+  color: #f97316;
   cursor: pointer;
 }
 
@@ -1117,12 +1117,12 @@ a {
   margin: 0;
   font-size: 2.6rem;
   font-weight: 800;
-  color: #ff5000;
+  color: #f97316;
   letter-spacing: -0.02em;
 }
 
 .product-info__discount-badge {
-  background: #ff5000;
+  background: #f97316;
   color: #fff;
   padding: 0.35rem 0.65rem;
   border-radius: 999px;
@@ -1292,8 +1292,8 @@ a {
 }
 
 .product-variants__option.is-selected {
-  border-color: #ff5000;
-  color: #ff5000;
+  border-color: #f97316;
+  color: #f97316;
   background: #fff3eb;
 }
 
@@ -1322,8 +1322,8 @@ a {
 
 .button--ae-cart {
   background: #ffefe6;
-  border: 2px solid #ff5000;
-  color: #ff5000;
+  border: 2px solid #f97316;
+  color: #f97316;
 }
 
 .button--ae-cart:hover {
@@ -1331,7 +1331,7 @@ a {
 }
 
 .button--ae-buy {
-  background: linear-gradient(90deg, #ff7700 0%, #ff5000 100%);
+  background: linear-gradient(90deg, #ff7700 0%, #f97316 100%);
   color: #fff;
   box-shadow: 0 4px 12px rgba(255, 80, 0, 0.3);
 }
@@ -1429,7 +1429,7 @@ a {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
-  color: #ff5000;
+  color: #f97316;
 }
 
 .product-sticky-buy__variant {
@@ -1441,7 +1441,7 @@ a {
 .product-sticky-buy__button {
   border: none;
   border-radius: 999px;
-  background: linear-gradient(90deg, #ff7700 0%, #ff5000 100%);
+  background: linear-gradient(90deg, #ff7700 0%, #f97316 100%);
   color: #fff;
   font-weight: 700;
   padding: 0.6rem 1rem;
@@ -1528,7 +1528,7 @@ a {
 }
 
 .review-section__summary strong {
-  color: #ff5000;
+  color: #f97316;
   font-size: 1.2rem;
 }
 
@@ -1579,7 +1579,7 @@ a {
 }
 
 .review-form__star.is-active {
-  color: #ff5000;
+  color: #f97316;
 }
 
 .review-form__comment {
@@ -1649,7 +1649,7 @@ a {
 }
 
 .review-card__rating {
-  color: #ff5000;
+  color: #f97316;
   margin: 0;
   font-size: 1.1rem;
 }
@@ -1919,7 +1919,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: #ff5000;
+  background: #f97316;
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 999px;
@@ -2011,7 +2011,7 @@ a {
   top: 0.75rem;
   left: 0.75rem;
   z-index: 10;
-  background: linear-gradient(135deg, #ff5000, #ff8c00);
+  background: linear-gradient(135deg, #f97316, #ff8c00);
   color: white;
   padding: 0.25rem 0.6rem;
   border-radius: 6px;
