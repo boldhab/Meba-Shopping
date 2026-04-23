@@ -4,7 +4,7 @@
     {
       "label": "Auto Git Sync (Feature Branches)",
       "type": "shell",
-      "command": "npm run git:auto-sync",
+      "command": "AUTO_GIT_SYNC_ENABLE=1 npm run git:auto-sync",
       "isBackground": true,
       "runOptions": {
         "runOn": "folderOpen"

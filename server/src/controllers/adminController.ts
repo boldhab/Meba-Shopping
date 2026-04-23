@@ -628,4 +628,85 @@ export const adminController = {
       next(error);
     }
   },
+
+  async exportProducts(_request: Request, response: Response, next: NextFunction) {
+    try {
+      const products = await prisma.product.findMany({
+        include: { category: true },
+      });
+
+      const headers = ["id", "name", "slug", "price", "stock", "categoryId", "status", "isFeatured", "allowBackorder", "lowStockThreshold"];
+      const rows = products.map((p) => [
+        p.id,
+        `"${p.name.replace(/"/g, '""')}"`,
+        p.slug,
+        p.price,
+        p.stock,
+        p.categoryId,
+        p.status,
+        p.isFeatured,
+        p.allowBackorder,
+        p.lowStockThreshold,
+      ]);
+
+      const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+
+      response.setHeader("Content-Type", "text/csv");
+      response.setHeader("Content-Disposition", `attachment; filename=products_${new Date().toISOString().split("T")[0]}.csv`);
+      response.status(200).send(csvContent);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async importProducts(request: Request, response: Response, next: NextFunction) {
+    try {
+      if (!request.file) {
+        throw new ApiError(400, "CSV file is required.");
+      }
+
+      const csvContent = request.file.buffer.toString("utf-8");
+      const lines = csvContent.split(/\r?\n/).filter(line => line.trim() !== "");
+      if (lines.length < 2) {
+        throw new ApiError(400, "CSV file is empty or missing headers.");
+      }
+
+      const headers = lines[0].split(",");
+      const dataRows = lines.slice(1);
+      let count = 0;
+
+      for (const row of dataRows) {
+        const values = row.split(","); // Simple split, won't handle commas in quotes perfectly
+        const item: any = {};
+        headers.forEach((h, i) => {
+          let val = values[i]?.replace(/^"|"$/g, "");
+          if (h === "price" || h === "stock" || h === "lowStockThreshold") {
+            item[h] = Number(val);
+          } else if (h === "isFeatured" || h === "allowBackorder") {
+            item[h] = val === "true";
+          } else {
+            item[h] = val;
+          }
+        });
+
+        if (item.slug && item.name && item.price !== undefined) {
+          if (item.id) {
+            await prisma.product.update({
+              where: { id: item.id },
+              data: { ...item, id: undefined },
+            });
+          } else {
+            await prisma.product.create({
+              data: item,
+            });
+          }
+          count++;
+        }
+      }
+
+      response.json({ message: `Successfully processed ${count} products.`, count });
+    } catch (error) {
+      next(error);
+    }
+  },
 };

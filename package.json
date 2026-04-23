@@ -13,8 +13,8 @@
     "build:api": "npm run build --workspace @meba/api",
     "lint:web": "npm run lint --workspace @meba/web",
     "typecheck": "npm run typecheck --workspace @meba/web && npm run typecheck --workspace @meba/api",
-    "git:auto-sync": "AUTO_GIT_SYNC_BRANCH_REGEX='^(feature|hotfix|bugfix)/' bash ./scripts/auto-git-sync.sh",
-    "git:auto-sync:health": "AUTO_GIT_SYNC_BRANCH_REGEX='^(feature|hotfix|bugfix)/' bash ./scripts/auto-git-sync-health.sh"
+    "git:auto-sync": "AUTO_GIT_SYNC_ENABLE=1 AUTO_GIT_SYNC_BRANCH_REGEX='^(feature|hotfix|bugfix)/' bash ./scripts/auto-git-sync.sh",
+    "git:auto-sync:health": "AUTO_GIT_SYNC_ENABLE=1 AUTO_GIT_SYNC_BRANCH_REGEX='^(feature|hotfix|bugfix)/' bash ./scripts/auto-git-sync-health.sh"
   },
   "engines": {
     "node": ">=20.0.0"

@@ -27,9 +27,18 @@ export function ProductForm({ productId }: { productId?: string }) {
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [status, setStatus] = useState("DRAFT");
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [allowBackorder, setAllowBackorder] = useState(false);
+  const [lowStockThreshold, setLowStockThreshold] = useState("10");
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
+  const [seoKeywords, setSeoKeywords] = useState("");
+  const [attributes, setAttributes] = useState("{}");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("basic");
 
   useEffect(() => {
     async function loadForm() {
@@ -52,6 +61,14 @@ export function ProductForm({ productId }: { productId?: string }) {
           setPrice(String(product.price));
           setStock(String(product.stock));
           setCategoryId(product.categoryId);
+          setStatus(product.status);
+          setIsFeatured(product.isFeatured);
+          setAllowBackorder(product.allowBackorder);
+          setLowStockThreshold(String(product.lowStockThreshold));
+          setSeoTitle(product.seoTitle ?? "");
+          setSeoDescription(product.seoDescription ?? "");
+          setSeoKeywords(product.seoKeywords ?? "");
+          setAttributes(JSON.stringify(product.attributes ?? {}, null, 2));
         } else if (categoryItems[0]) {
           setCategoryId((current) => current || categoryItems[0].id);
         }
@@ -84,6 +101,14 @@ export function ProductForm({ productId }: { productId?: string }) {
       return;
     }
 
+    let parsedAttributes = {};
+    try {
+      parsedAttributes = JSON.parse(attributes);
+    } catch (e) {
+      setError("Attributes must be valid JSON.");
+      return;
+    }
+
     setIsSaving(true);
     setError(null);
 
@@ -97,6 +122,14 @@ export function ProductForm({ productId }: { productId?: string }) {
         price: Number(price),
         stock: Number(stock),
         categoryId,
+        status,
+        isFeatured,
+        allowBackorder,
+        lowStockThreshold: Number(lowStockThreshold),
+        seoTitle: seoTitle.trim() || null,
+        seoDescription: seoDescription.trim() || null,
+        seoKeywords: seoKeywords.trim() || null,
+        attributes: parsedAttributes,
       };
 
       if (productId) {
@@ -121,65 +154,147 @@ export function ProductForm({ productId }: { productId?: string }) {
     <form className="panel form-stack" onSubmit={handleSubmit}>
       <div>
         <h2 className="m-0">{productId ? "Edit product" : "Create product"}</h2>
-        <p className="m-0 text-sm text-(--color-muted)">Products saved here are visible on the storefront product pages.</p>
+        <p className="m-0 text-sm text-(--color-muted)">Manage product details, SEO, and inventory settings.</p>
       </div>
 
-      <label className="label-stack">
-        <span>Name</span>
-        <input className="input" value={name} onChange={(event) => handleNameChange(event.target.value)} required />
-      </label>
-
-      <label className="label-stack">
-        <span>Slug</span>
-        <input className="input" value={slug} onChange={(event) => setSlug(event.target.value)} required />
-      </label>
-
-      <ImageUpload
-        label="Product Image"
-        file={imageFile}
-        existingImageUrl={existingImageUrl}
-        required={!productId}
-        productName={name}
-        onChange={setImageFile}
-      />
-
-      <label className="label-stack">
-        <span>Description</span>
-        <textarea
-          className="input"
-          rows={6}
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-        />
-      </label>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="label-stack">
-          <span>Price</span>
-          <input className="input" type="number" min="0.01" step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} required />
-        </label>
-
-        <label className="label-stack">
-          <span>Stock</span>
-          <input className="input" type="number" min="0" step="1" value={stock} onChange={(event) => setStock(event.target.value)} required />
-        </label>
+      <div className="flex border-b border-(--color-border) mb-4">
+        {["basic", "inventory", "seo", "attributes"].map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            className={`px-4 py-2 capitalize ${activeTab === tab ? "border-b-2 border-primary font-bold" : "text-(--color-muted)"}`}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
-      <label className="label-stack">
-        <span>Category</span>
-        <select className="input" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} required>
-          <option value="" disabled>Select category</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      {activeTab === "basic" && (
+        <div className="form-stack">
+          <label className="label-stack">
+            <span>Name</span>
+            <input className="input" value={name} onChange={(event) => handleNameChange(event.target.value)} required />
+          </label>
+
+          <label className="label-stack">
+            <span>Slug</span>
+            <input className="input" value={slug} onChange={(event) => setSlug(event.target.value)} required />
+          </label>
+
+          <ImageUpload
+            label="Product Image"
+            file={imageFile}
+            existingImageUrl={existingImageUrl}
+            required={!productId}
+            productName={name}
+            onChange={setImageFile}
+          />
+
+          <label className="label-stack">
+            <span>Description</span>
+            <textarea
+              className="input"
+              rows={6}
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </label>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="label-stack">
+              <span>Price</span>
+              <input className="input" type="number" min="0.01" step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} required />
+            </label>
+
+            <label className="label-stack">
+              <span>Category</span>
+              <select className="input" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} required>
+                <option value="" disabled>Select category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <label className="label-stack">
+            <span>Status</span>
+            <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
+              <option value="DRAFT">Draft</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
+          </label>
+        </div>
+      )}
+
+      {activeTab === "inventory" && (
+        <div className="form-stack">
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="label-stack">
+              <span>Current Stock</span>
+              <input className="input" type="number" min="0" step="1" value={stock} onChange={(event) => setStock(event.target.value)} required />
+            </label>
+
+            <label className="label-stack">
+              <span>Low Stock Threshold</span>
+              <input className="input" type="number" min="0" step="1" value={lowStockThreshold} onChange={(event) => setLowStockThreshold(event.target.value)} />
+            </label>
+          </div>
+
+          <div className="flex gap-6 mt-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} />
+              <span>Featured Item</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={allowBackorder} onChange={(e) => setAllowBackorder(e.target.checked)} />
+              <span>Allow Backorders</span>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "seo" && (
+        <div className="form-stack">
+          <label className="label-stack">
+            <span>SEO Title</span>
+            <input className="input" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="Browser tab title" />
+          </label>
+          <label className="label-stack">
+            <span>SEO Description</span>
+            <textarea className="input" rows={3} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} placeholder="Meta description for search engines" />
+          </label>
+          <label className="label-stack">
+            <span>SEO Keywords</span>
+            <input className="input" value={seoKeywords} onChange={(e) => setSeoKeywords(e.target.value)} placeholder="keyword1, keyword2, keyword3" />
+          </label>
+        </div>
+      )}
+
+      {activeTab === "attributes" && (
+        <div className="form-stack">
+          <label className="label-stack">
+            <span>Attributes (JSON)</span>
+            <textarea
+              className="input font-mono text-sm"
+              rows={10}
+              value={attributes}
+              onChange={(e) => setAttributes(e.target.value)}
+              placeholder='{ "Brand": "Example", "Type": "Organic" }'
+            />
+            <p className="text-xs text-(--color-muted)">Provide specifications and attributes in JSON format.</p>
+          </label>
+        </div>
+      )}
 
       {error ? <p className="form-error">{error}</p> : null}
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 mt-4">
         <button type="submit" className="button" disabled={isSaving}>
           {isSaving ? "Saving..." : productId ? "Update Product" : "Create Product"}
         </button>
