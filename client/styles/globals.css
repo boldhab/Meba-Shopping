@@ -43,7 +43,8 @@ a {
 
 .site-main {
   flex: 1;
-  padding: 2rem;
+  padding: 1rem 2rem;
+  width: 100%;
 }
 
 .site-footer,
@@ -57,8 +58,9 @@ a {
 
 .site-header,
 .site-footer {
-  margin: 1rem 2rem 0;
-  padding: 1rem 1.25rem;
+  margin: 0;
+  padding: 1rem 2rem;
+  width: 100%;
 }
 
 .site-footer {
@@ -504,11 +506,12 @@ a {
   position: sticky;
   top: 0;
   z-index: 40;
-  margin: 1rem 2rem 0;
-  border-radius: 26px;
-  border: 1px solid var(--color-border);
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
   background: linear-gradient(135deg, var(--color-primary) 0%, #1d4f91 58%, #ffffff 58%, #f8fbff 100%);
-  box-shadow: 0 18px 50px rgba(37, 99, 235, 0.14);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.1);
 }
 
 .admin-topbar__inner {
@@ -610,12 +613,13 @@ a {
 }
 
 .admin-dashboard__hero {
-  border-radius: 26px;
-  border: 1px solid var(--color-border);
-  background: linear-gradient(135deg, var(--color-primary) 0%, #1e40af 52%, var(--color-background) 52%, #ffffff 100%);
-  padding: 1.5rem;
+  border-radius: 0;
+  border: none;
+  margin: -1rem -2rem 1.5rem;
+  background: linear-gradient(135deg, #10253f 0%, #1f4670 52%, #f7f9fc 52%, #ffffff 100%);
+  padding: 2rem;
   color: white;
-  box-shadow: 0 20px 40px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 10px 30px rgba(16, 37, 63, 0.1);
 }
 
 .admin-dashboard__eyebrow {
