@@ -24,8 +24,8 @@ body {
 
 body {
   background:
-    radial-gradient(circle at top, rgba(14, 122, 83, 0.12), transparent 32%),
-    linear-gradient(180deg, var(--color-background) 0%, #f2ede2 100%);
+    radial-gradient(circle at top, rgba(37, 99, 235, 0.12), transparent 32%),
+    linear-gradient(180deg, var(--color-background) 0%, #f9fafb 100%);
   color: var(--color-text);
   font-family: Georgia, "Times New Roman", serif;
 }
