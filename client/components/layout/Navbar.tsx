@@ -3,13 +3,13 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useCart } from "@/lib/hooks/useCart";
 import { AdminNavbar } from "./AdminNavbar";
 import {
   ChevronDown,
   Grid3X3,
-  LogIn,
   LogOut,
   Menu,
   Package,
@@ -19,20 +19,37 @@ import {
   User,
   X,
   Heart,
-  Shield,
   HelpCircle,
   Truck,
   ChevronRight,
   Mail,
-  CreditCard,
-  Ticket,
-  RotateCcw,
-  ShieldAlert,
-  FileText,
-  AlertOctagon,
-  LayoutGrid,
-  History,
+  Clock,
+  Sparkles,
+  TrendingUp,
+  Tag,
 } from "lucide-react";
+
+// Animation variants (keep as is)
+const fadeInDown = {
+  initial: { opacity: 0, y: -20 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
+
+const dropdownVariants = {
+  hidden: { opacity: 0, y: -10, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.2 },
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    scale: 0.95,
+    transition: { duration: 0.15 },
+  },
+};
 
 export function Navbar() {
   const pathname = usePathname();
@@ -42,54 +59,66 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
-
-  let mouseLeaveTimeout: NodeJS.Timeout;
-
-  const handleMouseEnter = () => {
-    clearTimeout(mouseLeaveTimeout);
-    setIsAccountMenuOpen(true);
-  };
-
-  const handleMouseLeave = () => {
-    mouseLeaveTimeout = setTimeout(() => {
-      setIsAccountMenuOpen(false);
-    }, 150);
-  };
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const categoriesRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  let mouseLeaveTimeout: NodeJS.Timeout;
+
+  // Popular search suggestions
+  const popularSearches = [
+    "iPhone 15", "Laptop", "Shoes", "Dress", "Watch", "Headphones", "TV", "Camera"
+  ];
 
   useEffect(() => {
-    setIsMobileMenuOpen(false);
-    setCategoriesOpen(false);
-  }, [pathname]);
+    if (searchText.length > 1) {
+      // Simulate API call for suggestions
+      const filtered = popularSearches.filter(s => 
+        s.toLowerCase().includes(searchText.toLowerCase())
+      );
+      setSearchSuggestions(filtered.slice(0, 5));
+    } else {
+      setSearchSuggestions([]);
+    }
+  }, [searchText]);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
+    
     const handleClickOutside = (event: MouseEvent) => {
-      if (categoriesRef.current && !categoriesRef.current.contains(event.target as Node)) {
-        setCategoriesOpen(false);
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearchFocused(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
+  // Simplified nav links - remove redundancy
   const navLinks = [
-    { href: "/", label: "Home", icon: Package },
-    { href: "/products", label: "Products", icon: Package },
-    { href: "/cart", label: "Cart", icon: ShoppingCart },
+    { href: "/", label: "Home" },
+    { href: "/products", label: "Products" },
+    { href: "/promotions", label: "Deals", icon: Tag },
   ];
 
+  // Real-world categories
   const categoryLinks = [
-    "Electronics", "Clothing", "Home & Garden", "Sports", "Toys", "Books", "Automotive", "Health"
+    "Electronics", "Fashion", "Home & Living", "Sports", 
+    "Beauty", "Toys", "Books", "Grocery"
+  ];
+
+  // Simplified account menu - most important items only
+  const accountMenuItems = [
+    { href: "/account/orders", label: "My Orders", icon: Package, badge: null },
+    { href: "/account/wishlist", label: "Wishlist", icon: Heart, badge: null },
+    { href: "/account/messages", label: "Messages", icon: Mail, badge: null },
   ];
 
   const isActive = (path: string) => {
@@ -107,8 +136,7 @@ export function Navbar() {
     e.preventDefault();
     if (searchText.trim()) {
       router.push(`/products?search=${encodeURIComponent(searchText.trim())}`);
-    } else {
-      router.push("/products");
+      setIsSearchFocused(false);
     }
   };
 
@@ -118,209 +146,216 @@ export function Navbar() {
 
   return (
     <>
-      <header
+      <motion.header
+        initial="initial"
+        animate="animate"
+        variants={fadeInDown}
         className={`fixed left-0 right-0 top-0 z-50 transition-all duration-300 ${
-          isScrolled ? "shadow-lg" : "shadow-sm"
+          isScrolled ? "shadow-lg bg-white/95 backdrop-blur-sm" : "bg-white shadow-sm"
         }`}
       >
-        {/* Top Bar */}
+        {/* Top Bar - Keep minimal */}
         <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white">
-          <div className="mx-auto flex h-8 max-w-none items-center justify-between px-6 md:px-12 lg:px-16 text-[11px]">
+          <div className="mx-auto flex h-8 max-w-none items-center justify-between px-6 md:px-12 lg:px-20 text-[11px]">
             <div className="flex items-center gap-4">
               <Truck className="h-3 w-3" />
               <p className="hidden sm:block">Free shipping on orders over 1000 ETB</p>
             </div>
             <div className="flex items-center gap-4">
-              <Link href="/account/orders" className="hover:text-orange-400 transition-colors flex items-center gap-1">
-                <Package className="h-3 w-3" />
-                Orders
+              <Link href="/account/orders" className="hover:text-orange-400 transition-colors">
+                Track Order
               </Link>
-              <Link href="/help" className="hover:text-orange-400 transition-colors flex items-center gap-1">
-                <HelpCircle className="h-3 w-3" />
+              <Link href="/help" className="hover:text-orange-400 transition-colors">
                 Help
-              </Link>
-              <Link href="/buyer-protection" className="hover:text-orange-400 transition-colors flex items-center gap-1">
-                <Shield className="h-3 w-3" />
-                Protection
               </Link>
             </div>
           </div>
         </div>
 
         {/* Main Header */}
-        <div className={`bg-white transition-all duration-300 ${isScrolled ? "border-b border-slate-200" : ""}`}>
-          <div className="mx-auto flex h-16 max-w-none items-center gap-4 px-6 md:px-12 lg:px-16">
+        <div className="border-b border-slate-100">
+          <div className="mx-auto flex h-16 max-w-none items-center gap-4 px-6 md:px-12 lg:px-20">
             {/* Logo */}
             <Link href="/" className="flex shrink-0 items-center gap-2 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-md group-hover:shadow-lg transition-all">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600">
                 <ShoppingBag className="h-5 w-5 text-white" />
               </div>
-              <div>
-                <span className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                  Meba
-                </span>
-                <span className="hidden text-[10px] font-medium text-orange-500 lg:block">Marketplace</span>
-              </div>
+              <span className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                Meba
+              </span>
             </Link>
 
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="hidden flex-1 items-center gap-2 md:flex">
-              <div className="relative flex h-10 w-full items-center rounded-full border-2 border-slate-200 bg-white px-4 transition-all focus-within:border-orange-400">
-                <Search className="h-4 w-4 text-slate-400" />
-                <input
-                  className="w-full border-none bg-transparent px-2 text-sm text-slate-700 outline-none placeholder:text-slate-400"
-                  placeholder="Search for products, brands, and more..."
-                  value={searchText}
-                  onChange={(event) => setSearchText(event.target.value)}
-                />
-              </div>
-              <button
-                type="submit"
-                className="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-6 text-sm font-semibold text-white shadow-md shadow-orange-200 hover:shadow-lg transition-all hover:scale-105"
-              >
-                Search
-              </button>
-            </form>
-
-            {/* Desktop Right Section */}
-            <div className="hidden items-center gap-2 md:flex">
-              {/* Account Dropdown Container */}
-              <div 
-                className="relative"
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-              >
-                <div className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 cursor-pointer hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-all">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100">
-                    <User className="h-4 w-4 text-slate-600" />
-                  </div>
-                  <div className="flex flex-col items-start leading-tight">
-                    <span className="text-[10px] text-slate-500 font-normal">Welcome</span>
-                    <span className="max-w-[100px] truncate">{isAuthenticated ? user?.name?.split(" ")[0] : "Sign in / Register"}</span>
-                  </div>
-                  <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isAccountMenuOpen ? "rotate-180" : ""}`} />
+            {/* Search Bar with Autocomplete - IMPROVED */}
+            <div className="hidden flex-1 max-w-2xl md:block" ref={searchRef}>
+              <form onSubmit={handleSearch} className="relative">
+                <div className={`flex h-11 w-full items-center rounded-full border-2 transition-all ${
+                  isSearchFocused 
+                    ? "border-orange-400 shadow-lg shadow-orange-100" 
+                    : "border-slate-200 hover:border-slate-300"
+                } bg-white`}>
+                  <Search className="ml-4 h-4 w-4 text-slate-400" />
+                  <input
+                    className="w-full border-none bg-transparent px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                    placeholder="Search products, brands, and categories..."
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                  />
+                  {searchText && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchText("")}
+                      className="mr-2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="mr-1 rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-6 py-1.5 text-sm font-semibold text-white"
+                  >
+                    Search
+                  </button>
                 </div>
 
-                {/* Dropdown Menu */}
-                {isAccountMenuOpen && (
-                  <div className="absolute right-0 top-full z-[60] mt-2 w-72 origin-top-right rounded-2xl border border-slate-100 bg-white p-2 shadow-2xl ring-1 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="p-4 border-b border-slate-50 mb-1">
-                      {isAuthenticated ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white font-bold">
-                              {user?.name?.charAt(0).toUpperCase()}
-                            </div>
-                            <div className="overflow-hidden">
-                              <p className="text-sm font-bold text-slate-900 truncate">Hi, {user?.name}</p>
-                              <p className="text-[10px] text-slate-500 truncate">{user?.email}</p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={handleLogout}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-slate-800 transition-all active:scale-95"
-                          >
-                            <LogOut className="h-4 w-4" />
-                            Sign Out
-                          </button>
+                {/* Search Suggestions Dropdown */}
+                <AnimatePresence>
+                  {isSearchFocused && (searchSuggestions.length > 0 || searchText.length === 0) && (
+                    <motion.div
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      className="absolute left-0 right-0 top-full mt-2 rounded-xl border border-slate-200 bg-white shadow-xl z-50 overflow-hidden"
+                    >
+                      {searchText.length === 0 ? (
+                        <div className="py-2">
+                          <p className="px-4 py-2 text-xs font-semibold text-slate-400">Popular Searches</p>
+                          {popularSearches.map((term) => (
+                            <button
+                              key={term}
+                              onClick={() => {
+                                setSearchText(term);
+                                router.push(`/products?search=${encodeURIComponent(term)}`);
+                                setIsSearchFocused(false);
+                              }}
+                              className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-orange-50"
+                            >
+                              <TrendingUp className="h-3.5 w-3.5 text-slate-400" />
+                              {term}
+                            </button>
+                          ))}
                         </div>
                       ) : (
-                        <div className="space-y-3">
-                          <div className="text-center">
-                            <p className="text-sm font-bold text-slate-900">Welcome to Meba Shopping</p>
-                            <p className="text-[10px] text-slate-500 mt-1">Join over 100M+ global shoppers</p>
+                        <div className="py-2">
+                          {searchSuggestions.map((suggestion) => (
+                            <button
+                              key={suggestion}
+                              onClick={() => {
+                                setSearchText(suggestion);
+                                router.push(`/products?search=${encodeURIComponent(suggestion)}`);
+                                setIsSearchFocused(false);
+                              }}
+                              className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-orange-50"
+                            >
+                              <Search className="h-3.5 w-3.5 text-slate-400" />
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </form>
+            </div>
+
+            {/* Desktop Right Section - SIMPLIFIED */}
+            <div className="hidden items-center gap-3 md:flex">
+              {/* Account Button - Simplified */}
+              <div
+                className="relative"
+                onMouseEnter={() => setIsAccountMenuOpen(true)}
+                onMouseLeave={() => setTimeout(() => setIsAccountMenuOpen(false), 150)}
+              >
+                <button className="flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all">
+                  <User className="h-4 w-4" />
+                  <span>{isAuthenticated ? user?.name?.split(" ")[0] : "Account"}</span>
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+
+                <AnimatePresence>
+                  {isAccountMenuOpen && (
+                    <motion.div
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      className="absolute right-0 top-full mt-2 w-64 rounded-xl border border-slate-200 bg-white shadow-xl z-50"
+                    >
+                      {isAuthenticated ? (
+                        <div className="py-2">
+                          <div className="px-4 py-3 border-b border-slate-100">
+                            <p className="text-sm font-semibold text-slate-900">Hi, {user?.name}</p>
+                            <p className="text-xs text-slate-500 truncate">{user?.email}</p>
                           </div>
-                          <div className="flex gap-2">
-                            <Link 
-                              href="/login" 
-                              className="flex-1 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 py-2.5 text-center text-sm font-bold text-white shadow-md hover:shadow-lg transition-all active:scale-95"
+                          {accountMenuItems.map((item) => (
+                            <Link
+                              key={item.label}
+                              href={item.href}
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                            >
+                              <item.icon className="h-4 w-4" />
+                              {item.label}
+                            </Link>
+                          ))}
+                          <div className="border-t border-slate-100 mt-1 pt-1">
+                            <button
+                              onClick={handleLogout}
+                              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              <LogOut className="h-4 w-4" />
+                              Sign Out
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4">
+                          <div className="text-center">
+                            <p className="text-sm font-semibold text-slate-900">Welcome!</p>
+                            <p className="text-xs text-slate-500 mt-1">Sign in for better experience</p>
+                          </div>
+                          <div className="mt-4 space-y-2">
+                            <Link
+                              href="/login"
+                              className="block rounded-lg bg-gradient-to-r from-orange-500 to-red-500 py-2 text-center text-sm font-semibold text-white"
                             >
                               Sign In
                             </Link>
-                            <Link 
-                              href="/register" 
-                              className="flex-1 rounded-xl border border-slate-200 py-2.5 text-center text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all active:scale-95"
+                            <Link
+                              href="/register"
+                              className="block rounded-lg border border-slate-200 py-2 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50"
                             >
-                              Join Free
+                              Create Account
                             </Link>
                           </div>
                         </div>
                       )}
-                    </div>
-
-                    <div className="py-1 max-h-[400px] overflow-y-auto custom-scrollbar">
-                      <div className="mb-2">
-                        <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">My Account</p>
-                        {[
-                          { href: "/account/orders", label: "My Orders", icon: History },
-                          { href: "/account/coins", label: "My Coins", icon: Package }, // Should be Coins if available
-                          { href: "/account/messages", label: "Message Center", icon: Mail },
-                          { href: "/account/payment", label: "Payment", icon: CreditCard },
-                          { href: "/account/wishlist", label: "Wish List", icon: Heart },
-                          { href: "/account/coupons", label: "My Coupons", icon: Ticket },
-                          { href: "/account/settings", label: "Settings", icon: User },
-                        ].map((item) => (
-                          <Link 
-                            key={item.label}
-                            href={item.href} 
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-600 group"
-                          >
-                            <item.icon className="h-4 w-4 text-slate-400 group-hover:text-orange-500 transition-colors" />
-                            {item.label}
-                          </Link>
-                        ))}
-                      </div>
-
-                      <div className="mb-2 border-t border-slate-50 pt-2">
-                        <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Professional</p>
-                        {[
-                          { href: "/business", label: "AliExpress Business" },
-                          { href: "/ds-center", label: "DS Center" },
-                          { href: "/seller/login", label: "Seller Log In" },
-                        ].map((item) => (
-                          <Link 
-                            key={item.label}
-                            href={item.href} 
-                            className="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-600"
-                          >
-                            {item.label}
-                          </Link>
-                        ))}
-                      </div>
-
-                      <div className="border-t border-slate-50 pt-2 pb-1">
-                        <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Support</p>
-                        {[
-                          { href: "/help/returns", label: "Return&refund policy", icon: RotateCcw },
-                          { href: "/help", label: "Help Center", icon: HelpCircle },
-                          { href: "/help/disputes", label: "Disputes & Reports", icon: AlertOctagon },
-                          { href: "/help/ipr", label: "Report IPR infringement", icon: ShieldAlert },
-                          { href: "/help/penalties", label: "Penalties information", icon: FileText },
-                        ].map((item) => (
-                          <Link 
-                            key={item.label}
-                            href={item.href} 
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-700 transition-all hover:bg-orange-50 hover:text-orange-600 group"
-                          >
-                            {item.icon && <item.icon className="h-3.5 w-3.5 text-slate-400 group-hover:text-orange-500 transition-colors" />}
-                            {item.label}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
+              {/* Cart Button - Keep as is */}
               <Link
                 href="/cart"
-                className="relative inline-flex h-10 items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-4 text-sm font-semibold text-white shadow-md shadow-orange-200 hover:shadow-lg transition-all"
+                className="relative flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-4 py-1.5 text-sm font-semibold text-white"
               >
                 <ShoppingCart className="h-4 w-4" />
                 Cart
                 {cartCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-[10px] font-bold text-white ring-2 ring-white">
-                    {cartCount}
+                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[10px] font-bold text-white ring-2 ring-white">
+                    {cartCount > 99 ? "99+" : cartCount}
                   </span>
                 )}
               </Link>
@@ -328,289 +363,163 @@ export function Navbar() {
 
             {/* Mobile Menu Button */}
             <button
-              onClick={() => setIsMobileMenuOpen((value) => !value)}
-              className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-700 transition-all hover:bg-slate-50 md:hidden"
-              aria-label="Toggle menu"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="ml-auto flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 md:hidden"
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
 
-        {/* Bottom Navigation Bar */}
-        <div className="border-t border-slate-200 bg-white">
-          <div className="mx-auto flex h-11 max-w-none items-center justify-between px-6 md:px-12 lg:px-16">
+        {/* Bottom Navigation - Keep minimal */}
+        <div className="hidden border-t border-slate-100 bg-white md:block">
+          <div className="mx-auto flex h-10 max-w-none items-center gap-6 px-6 md:px-12 lg:px-20">
             {/* Categories Dropdown */}
             <div className="relative" ref={categoriesRef}>
               <button
                 onClick={() => setCategoriesOpen(!categoriesOpen)}
-                className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-1.5 text-xs font-semibold text-white shadow-md hover:shadow-lg transition-all"
+                className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-orange-600"
               >
-                <Grid3X3 className="h-3.5 w-3.5" />
+                <Grid3X3 className="h-4 w-4" />
                 All Categories
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${categoriesOpen ? "rotate-180" : ""}`} />
+                <ChevronDown className="h-3.5 w-3.5" />
               </button>
 
-              {/* Categories Dropdown Menu */}
-              {categoriesOpen && (
-                <div className="absolute left-0 top-full mt-2 w-64 rounded-lg border border-slate-200 bg-white shadow-xl z-50 overflow-hidden">
-                  <div className="py-2">
-                    {categoryLinks.map((category) => (
-                      <Link
-                        key={category}
-                        href={`/products?category=${category.toLowerCase()}`}
-                        className="flex items-center justify-between px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-orange-50 hover:text-orange-600"
-                        onClick={() => setCategoriesOpen(false)}
-                      >
-                        {category}
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <AnimatePresence>
+                {categoriesOpen && (
+                  <motion.div
+                    variants={dropdownVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className="absolute left-0 top-full mt-1 w-64 rounded-lg border border-slate-200 bg-white shadow-lg z-50"
+                  >
+                    <div className="py-2">
+                      {categoryLinks.map((category) => (
+                        <Link
+                          key={category}
+                          href={`/products?category=${category.toLowerCase()}`}
+                          className="flex items-center justify-between px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600"
+                          onClick={() => setCategoriesOpen(false)}
+                        >
+                          {category}
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Link>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            {/* Desktop Navigation Links */}
-            <nav className="hidden items-center gap-1 md:flex">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
-                    isActive(link.href)
-                      ? "bg-orange-50 text-orange-600 shadow-sm"
-                      : "text-slate-700 hover:bg-slate-50 hover:text-orange-600"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-
-              <div className="relative group">
-                <Link
-                  href="/promotions"
-                  className={`flex items-center gap-1 rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
-                    isActive("/promotions")
-                      ? "bg-orange-50 text-orange-600 shadow-sm"
-                      : "text-slate-700 hover:bg-slate-50 hover:text-orange-600"
-                  }`}
-                >
-                  Deals
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </Link>
-                <div className="absolute left-0 top-full z-50 mt-1 hidden w-56 rounded-lg border border-slate-200 bg-white shadow-lg group-hover:block">
-                  <div className="py-2">
-                    <Link href="/promotions?type=DAILY" className="block px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600">
-                      Daily Deals
-                    </Link>
-                    <Link href="/promotions?type=WEEKLY" className="block px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600">
-                      Weekly Deals
-                    </Link>
-                    <Link href="/promotions?type=CEREMONY" className="block px-4 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600">
-                      Ceremony Deals
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </nav>
-
-            <p className="hidden text-xs text-slate-500 md:block animate-pulse">
-              🔥 Flash deals end in 2:15:32
-            </p>
-          </div>
-        </div>
-
-        {/* Mobile Menu */}
-        <div
-          className={`overflow-hidden border-t border-slate-200 bg-white transition-all duration-300 md:hidden ${
-            isMobileMenuOpen ? "max-h-[600px] shadow-lg" : "max-h-0"
-          }`}
-        >
-          <div className="space-y-4 p-4">
-            {/* Mobile Search */}
-            <form onSubmit={handleSearch} className="flex items-center gap-2">
-              <div className="flex h-10 w-full items-center rounded-full border-2 border-slate-200 px-3 focus-within:border-orange-400">
-                <Search className="h-4 w-4 text-slate-400" />
-                <input
-                  className="w-full border-none bg-transparent px-2 text-sm text-slate-700 outline-none"
-                  placeholder="Search products..."
-                  value={searchText}
-                  onChange={(event) => setSearchText(event.target.value)}
-                />
-              </div>
-              <button
-                type="submit"
-                className="inline-flex h-10 items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-4 text-xs font-semibold text-white"
-              >
-                Go
-              </button>
-            </form>
-
-            {/* Mobile Navigation Grid */}
-            <div className="grid grid-cols-2 gap-2">
-              <Link href="/" className="rounded-lg border-2 border-slate-200 p-2 text-center text-xs font-medium text-slate-700 hover:border-orange-200 hover:bg-orange-50">
+            {/* Simple Nav Links */}
+            <div className="flex gap-1">
+              <Link href="/" className="px-3 py-1.5 text-sm text-slate-600 hover:text-orange-600">
                 Home
               </Link>
-              <Link href="/products" className="rounded-lg border-2 border-slate-200 p-2 text-center text-xs font-medium text-slate-700 hover:border-orange-200 hover:bg-orange-50">
+              <Link href="/products" className="px-3 py-1.5 text-sm text-slate-600 hover:text-orange-600">
                 Products
               </Link>
-              <Link href="/promotions" className="rounded-lg border-2 border-slate-200 p-2 text-center text-xs font-medium text-slate-700 hover:border-orange-200 hover:bg-orange-50">
-                Deals
-              </Link>
-              <Link href="/cart" className="rounded-lg border-2 border-slate-200 p-2 text-center text-xs font-medium text-slate-700 hover:border-orange-200 hover:bg-orange-50">
-                Cart
+              <Link href="/promotions" className="px-3 py-1.5 text-sm text-slate-600 hover:text-orange-600">
+                Flash Deals
               </Link>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-slate-500">DEALS</p>
-              <div className="grid grid-cols-3 gap-2">
-                <Link
-                  href="/promotions?type=DAILY"
-                  className="rounded-lg border border-slate-200 px-2 py-2 text-center text-[11px] font-medium text-slate-700 hover:border-orange-200 hover:bg-orange-50"
-                >
-                  Daily
-                </Link>
-                <Link
-                  href="/promotions?type=WEEKLY"
-                  className="rounded-lg border border-slate-200 px-2 py-2 text-center text-[11px] font-medium text-slate-700 hover:border-orange-200 hover:bg-orange-50"
-                >
-                  Weekly
-                </Link>
-                <Link
-                  href="/promotions?type=CEREMONY"
-                  className="rounded-lg border border-slate-200 px-2 py-2 text-center text-[11px] font-medium text-slate-700 hover:border-orange-200 hover:bg-orange-50"
-                >
-                  Ceremony
-                </Link>
-              </div>
+            {/* Flash Sale Timer */}
+            <div className="ml-auto flex items-center gap-2 text-xs">
+              <Sparkles className="h-3 w-3 text-orange-500" />
+              <span className="text-slate-500">Flash Sale ends in:</span>
+              <span className="font-mono font-bold text-orange-600">02:15:32</span>
             </div>
-
-            {/* Mobile Categories */}
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-slate-500">CATEGORIES</p>
-              <div className="grid grid-cols-2 gap-2">
-                {categoryLinks.slice(0, 6).map((category) => (
-                  <Link
-                    key={category}
-                    href={`/products?category=${category.toLowerCase()}`}
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 hover:border-orange-200 hover:bg-orange-50"
-                  >
-                    {category}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Mobile Auth & Account Section */}
-            {isAuthenticated ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-slate-50 to-slate-100 p-4 border border-slate-200/50 shadow-sm">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 shadow-md shadow-blue-200">
-                    <span className="text-lg font-bold text-white">
-                      {user?.name?.charAt(0).toUpperCase() || "U"}
-                    </span>
-                  </div>
-                  <div className="flex-1 overflow-hidden">
-                    <p className="text-base font-bold text-slate-900 truncate">Hi, {user?.name}</p>
-                    <p className="text-xs text-slate-500 truncate">{user?.email}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { href: "/account/orders", label: "My Orders", icon: History },
-                    { href: "/account/coins", label: "My Coins", icon: Package },
-                    { href: "/account/messages", label: "Messages", icon: Mail },
-                    { href: "/account/wishlist", label: "Wish List", icon: Heart },
-                  ].map((item) => (
-                    <Link 
-                      key={item.label}
-                      href={item.href}
-                      className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 p-3 text-center transition-all hover:bg-orange-50 hover:border-orange-100 group"
-                    >
-                      <item.icon className="h-5 w-5 text-slate-400 group-hover:text-orange-500" />
-                      <span className="text-[11px] font-semibold text-slate-700">{item.label}</span>
-                    </Link>
-                  ))}
-                </div>
-
-                <div className="space-y-1">
-                  <p className="px-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Settings & Support</p>
-                  <div className="divide-y divide-slate-100 rounded-xl border border-slate-100 bg-slate-50/50">
-                    {[
-                      { href: "/account/payment", label: "Payment & Coupons" },
-                      { href: "/account/settings", label: "Account Settings" },
-                      { href: "/business", label: "AliExpress Business" },
-                      { href: "/help", label: "Help Center & Support" },
-                    ].map((item) => (
-                      <Link 
-                        key={item.label}
-                        href={item.href}
-                        className="flex items-center justify-between px-4 py-3 text-sm font-medium text-slate-700 hover:bg-white transition-colors"
-                      >
-                        {item.label}
-                        <ChevronRight className="h-4 w-4 text-slate-300" />
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleLogout}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-bold text-white shadow-lg shadow-slate-200 active:scale-[0.98] transition-all"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-center text-white shadow-xl shadow-slate-200">
-                  <p className="text-lg font-bold">Sign in for the best experience</p>
-                  <p className="mt-1 text-xs text-slate-400">Manage orders, wishlist and more</p>
-                  <div className="mt-5 flex gap-3">
-                    <Link
-                      href="/login"
-                      className="flex-1 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 py-3 text-sm font-bold shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
-                    >
-                      Sign In
-                    </Link>
-                    <Link
-                      href="/register"
-                      className="flex-1 rounded-xl border border-white/20 bg-white/10 py-3 text-sm font-bold backdrop-blur-sm active:scale-95 transition-all"
-                    >
-                      Register
-                    </Link>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <p className="px-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Other Services</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { href: "/help", label: "Help Center" },
-                      { href: "/business", label: "Business" },
-                    ].map((item) => (
-                      <Link 
-                        key={item.label}
-                        href={item.href}
-                        className="rounded-xl border border-slate-200 py-3 text-center text-xs font-semibold text-slate-700"
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
-      </header>
 
-      {/* Spacer to prevent content from hiding under fixed header */}
-      <div className="h-[130px] md:h-[124px]" />
+        {/* Mobile Menu - SIMPLIFIED for better UX */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="border-t border-slate-200 bg-white md:hidden overflow-hidden"
+            >
+              <div className="space-y-4 p-4 max-h-[80vh] overflow-y-auto">
+                {/* Mobile Search */}
+                <form onSubmit={handleSearch} className="flex gap-2">
+                  <div className="flex-1 rounded-full border border-slate-200 px-4 py-2">
+                    <input
+                      className="w-full outline-none text-sm"
+                      placeholder="Search products..."
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="rounded-full bg-orange-500 px-4 text-sm font-semibold text-white"
+                  >
+                    Go
+                  </button>
+                </form>
+
+                {/* Mobile Navigation */}
+                <div className="grid grid-cols-2 gap-2">
+                  <Link href="/" className="rounded-lg border border-slate-200 p-3 text-center text-sm font-medium">
+                    Home
+                  </Link>
+                  <Link href="/products" className="rounded-lg border border-slate-200 p-3 text-center text-sm font-medium">
+                    Products
+                  </Link>
+                  <Link href="/promotions" className="rounded-lg border border-slate-200 p-3 text-center text-sm font-medium">
+                    Deals
+                  </Link>
+                  <Link href="/cart" className="rounded-lg border border-slate-200 p-3 text-center text-sm font-medium">
+                    Cart {cartCount > 0 && `(${cartCount})`}
+                  </Link>
+                </div>
+
+                {/* Mobile Auth */}
+                {isAuthenticated ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white font-bold">
+                        {user?.name?.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold">{user?.name}</p>
+                        <p className="text-xs text-slate-500">{user?.email}</p>
+                      </div>
+                    </div>
+                    <Link href="/account/orders" className="block rounded-lg border border-slate-200 p-3 text-center text-sm">
+                      My Orders
+                    </Link>
+                    <Link href="/account/wishlist" className="block rounded-lg border border-slate-200 p-3 text-center text-sm">
+                      Wishlist
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full rounded-lg bg-red-500 p-3 text-center text-sm font-semibold text-white"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Link
+                      href="/login"
+                      className="block rounded-lg bg-gradient-to-r from-orange-500 to-red-500 p-3 text-center font-semibold text-white"
+                    >
+                      Sign In / Register
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.header>
+
+      <div className="h-[116px]" />
     </>
   );
 }
