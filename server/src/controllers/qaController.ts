@@ -43,7 +43,12 @@ export const qaController = {
 
   async getQuestionsByProduct(request: Request, response: Response, next: NextFunction) {
     try {
-      const { productId } = request.params;
+      const rawProductId = request.params.productId;
+      if (!rawProductId || Array.isArray(rawProductId)) {
+        throw new ApiError(400, "Invalid product id.");
+      }
+
+      const productId = rawProductId;
 
       const questions = await prisma.question.findMany({
         where: {
@@ -89,7 +94,12 @@ export const qaController = {
 
   async updateQuestionStatus(request: Request, response: Response, next: NextFunction) {
     try {
-      const { id } = request.params;
+      const rawId = request.params.id;
+      if (!rawId || Array.isArray(rawId)) {
+        throw new ApiError(400, "Invalid question id.");
+      }
+
+      const id = rawId;
       const { status } = updateStatusSchema.parse(request.body);
 
       const question = await prisma.question.update({
@@ -108,7 +118,12 @@ export const qaController = {
       const userId = request.user?.id;
       if (!userId) throw new ApiError(401, "Unauthorized");
 
-      const { id: questionId } = request.params;
+      const rawQuestionId = request.params.id;
+      if (!rawQuestionId || Array.isArray(rawQuestionId)) {
+        throw new ApiError(400, "Invalid question id.");
+      }
+
+      const questionId = rawQuestionId;
       const { text } = answerQuestionSchema.parse(request.body);
 
       const answer = await prisma.answer.create({
@@ -138,7 +153,12 @@ export const qaController = {
 
   async deleteQuestion(request: Request, response: Response, next: NextFunction) {
     try {
-      const { id } = request.params;
+      const rawId = request.params.id;
+      if (!rawId || Array.isArray(rawId)) {
+        throw new ApiError(400, "Invalid question id.");
+      }
+
+      const id = rawId;
       await prisma.question.delete({ where: { id } });
       response.status(204).end();
     } catch (error) {

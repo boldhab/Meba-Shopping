@@ -601,7 +601,12 @@ export const adminController = {
 
   async updateReviewStatus(request: Request, response: Response, next: NextFunction) {
     try {
-      const { id } = request.params;
+      const rawId = request.params.id;
+      if (!rawId || Array.isArray(rawId)) {
+        throw new ApiError(400, "Invalid review id.");
+      }
+
+      const id = rawId;
       const { status } = updateReviewStatusSchema.parse(request.body);
 
       const review = await prisma.review.update({
@@ -621,7 +626,12 @@ export const adminController = {
 
   async deleteReview(request: Request, response: Response, next: NextFunction) {
     try {
-      const { id } = request.params;
+      const rawId = request.params.id;
+      if (!rawId || Array.isArray(rawId)) {
+        throw new ApiError(400, "Invalid review id.");
+      }
+
+      const id = rawId;
       await prisma.review.delete({ where: { id } });
       response.status(204).end();
     } catch (error) {
