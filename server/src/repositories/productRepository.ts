@@ -1,5 +1,7 @@
 import { prisma } from "../prisma/client";
-import { ProductStatus, DealType } from "@prisma/client";
+import { ProductStatus, DealType, Prisma } from "@prisma/client";
+
+type ProductSort = "newest" | "oldest" | "price-asc" | "price-desc" | "name-asc" | "name-desc" | "stock-asc" | "stock-desc";
 
 function buildActiveDealClauses(now: Date) {
   return [
@@ -29,6 +31,7 @@ export const productRepository = {
     dealsOnly?: boolean;
     status?: ProductStatus;
     isFeatured?: boolean;
+    sort?: ProductSort;
     skip?: number;
     take?: number;
     includeInactive?: boolean;
@@ -42,6 +45,7 @@ export const productRepository = {
       dealsOnly, 
       status, 
       isFeatured,
+      sort,
       skip = 0, 
       take = 20,
       includeInactive = false
@@ -88,13 +92,30 @@ export const productRepository = {
       where.AND = [...(where.AND ?? []), ...andClauses];
     }
 
+    const orderBy: Prisma.ProductOrderByWithRelationInput[] =
+      sort === "oldest"
+        ? [{ createdAt: "asc" }]
+        : sort === "price-asc"
+        ? [{ price: "asc" }, { createdAt: "desc" }]
+        : sort === "price-desc"
+          ? [{ price: "desc" }, { createdAt: "desc" }]
+          : sort === "name-asc"
+            ? [{ name: "asc" }, { createdAt: "desc" }]
+            : sort === "name-desc"
+              ? [{ name: "desc" }, { createdAt: "desc" }]
+              : sort === "stock-asc"
+                ? [{ stock: "asc" }, { createdAt: "desc" }]
+                : sort === "stock-desc"
+                  ? [{ stock: "desc" }, { createdAt: "desc" }]
+              : [{ createdAt: "desc" }];
+
     const [items, total] = await Promise.all([
       prisma.product.findMany({
         where,
         include: { category: true },
         skip,
         take,
-        orderBy: { createdAt: "desc" },
+        orderBy,
       }),
       prisma.product.count({ where }),
     ]);

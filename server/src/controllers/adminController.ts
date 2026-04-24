@@ -238,9 +238,23 @@ export const adminController = {
     }
   },
 
-  async listProducts(_request: Request, response: Response, next: NextFunction) {
+  async listProducts(request: Request, response: Response, next: NextFunction) {
     try {
-      const result = await productService.listProductsForAdmin();
+      const { search, status, sort, page, limit } = request.query as {
+        search?: string;
+        status?: string;
+        sort?: string;
+        page?: string;
+        limit?: string;
+      };
+
+      const result = await productService.listProductsForAdmin({
+        search,
+        status,
+        sort,
+        page,
+        limit,
+      });
       response.json(result);
     } catch (error) {
       next(error);

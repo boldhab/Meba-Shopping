@@ -4,6 +4,11 @@ import { ApiError } from "../utils/apiError";
 import { ProductStatus, DealType } from "@prisma/client";
 
 const DEAL_TYPES = ["DAILY", "WEEKLY", "CLEARANCE", "CEREMONY"] as const;
+const PRODUCT_SORTS = ["price-asc", "price-desc", "name-asc", "name-desc"] as const;
+const ADMIN_PRODUCT_SORTS = ["newest", "oldest", "price-asc", "price-desc", "name-asc", "name-desc", "stock-asc", "stock-desc"] as const;
+
+type ProductSort = (typeof PRODUCT_SORTS)[number];
+type AdminProductSort = (typeof ADMIN_PRODUCT_SORTS)[number];
 
 function parseDealType(input?: string): DealType | undefined {
   if (!input) return undefined;
@@ -16,6 +21,21 @@ function parseBoolean(input?: string): boolean | undefined {
   return input === "true";
 }
 
+function parseProductSort(input?: string): ProductSort | undefined {
+  if (!input) return undefined;
+  return PRODUCT_SORTS.find((sort) => sort === input) as ProductSort | undefined;
+}
+
+function parseAdminProductSort(input?: string): AdminProductSort | undefined {
+  if (!input) return undefined;
+  return ADMIN_PRODUCT_SORTS.find((sort) => sort === input) as AdminProductSort | undefined;
+}
+
+function parseProductStatus(input?: string): ProductStatus | undefined {
+  if (!input || input === "ALL") return undefined;
+  return Object.values(ProductStatus).find((status) => status === input) as ProductStatus | undefined;
+}
+
 export const productService = {
   async getAllProducts(query: {
     categoryId?: string;
@@ -26,6 +46,7 @@ export const productService = {
     dealsOnly?: string;
     page?: string;
     limit?: string;
+    sort?: string;
   }) {
     const skip = query.page ? (parseInt(query.page) - 1) * (parseInt(query.limit || "20")) : 0;
     const take = query.limit ? parseInt(query.limit) : 20;
@@ -39,6 +60,7 @@ export const productService = {
       maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
       dealType: parseDealType(query.dealType),
       dealsOnly: parseBoolean(query.dealsOnly),
+      sort: parseProductSort(query.sort),
       skip,
       take,
       status: ProductStatus.ACTIVE, // Publicly show only active products
@@ -69,8 +91,27 @@ export const productService = {
     return productRepository.findAll({ take: 300, skip: 0, includeInactive: true });
   },
 
-  async listProductsForAdmin() {
-    return productRepository.findAll({ take: 300, skip: 0, includeInactive: true });
+  async listProductsForAdmin(query?: {
+    search?: string;
+    status?: string;
+    sort?: string;
+    page?: string;
+    limit?: string;
+  }) {
+    const pageNumber = query?.page ? Number.parseInt(query.page, 10) : 1;
+    const page = Number.isFinite(pageNumber) && pageNumber > 0 ? pageNumber : 1;
+    const limitNumber = query?.limit ? Number.parseInt(query.limit, 10) : 20;
+    const take = Number.isFinite(limitNumber) && limitNumber > 0 ? Math.min(limitNumber, 100) : 20;
+    const skip = (page - 1) * take;
+
+    return productRepository.findAll({
+      search: query?.search?.trim() || undefined,
+      status: parseProductStatus(query?.status),
+      sort: parseAdminProductSort(query?.sort),
+      take,
+      skip,
+      includeInactive: true,
+    });
   },
 
   async createProduct(input: {

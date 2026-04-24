@@ -6,10 +6,11 @@ type FilterValues = {
   categoryId?: string;
   minPrice?: string;
   maxPrice?: string;
+  sort?: string;
 };
 
 export function ProductFilters({ categories, values }: { categories: Category[]; values: FilterValues }) {
-  const hasFilters = Boolean(values.search || values.categoryId || values.minPrice || values.maxPrice);
+  const hasFilters = Boolean(values.search || values.categoryId || values.minPrice || values.maxPrice || values.sort);
 
   return (
     <aside className="panel product-filters">
@@ -75,6 +76,17 @@ export function ProductFilters({ categories, values }: { categories: Category[];
             />
           </label>
         </div>
+
+        <label className="label-stack" htmlFor="sort">
+          <span>Sort by</span>
+          <select id="sort" className="input" name="sort" defaultValue={values.sort ?? ""}>
+            <option value="">Newest</option>
+            <option value="price-asc">Price: Low to high</option>
+            <option value="price-desc">Price: High to low</option>
+            <option value="name-asc">Name: A to Z</option>
+            <option value="name-desc">Name: Z to A</option>
+          </select>
+        </label>
 
         <button className="button" type="submit">
           Apply filters

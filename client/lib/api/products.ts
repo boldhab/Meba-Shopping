@@ -1,6 +1,7 @@
 import { apiClient } from "./client";
 
 export type DealType = "DAILY" | "WEEKLY" | "CLEARANCE" | "CEREMONY";
+export type ProductSort = "price-asc" | "price-desc" | "name-asc" | "name-desc";
 
 export interface Category {
   id: string;
@@ -45,6 +46,7 @@ export async function getProducts(params?: {
   maxPrice?: string;
   dealType?: DealType;
   dealsOnly?: boolean;
+  sort?: ProductSort;
   page?: string;
   limit?: string;
 }): Promise<{ items: Product[]; total: number }> {
@@ -56,6 +58,7 @@ export async function getProducts(params?: {
     if (params?.maxPrice) searchParams.append("maxPrice", params.maxPrice);
     if (params?.dealType) searchParams.append("dealType", params.dealType);
     if (params?.dealsOnly) searchParams.append("dealsOnly", "true");
+    if (params?.sort) searchParams.append("sort", params.sort);
     if (params?.page) searchParams.append("page", params.page);
     if (params?.limit) searchParams.append("limit", params.limit);
 

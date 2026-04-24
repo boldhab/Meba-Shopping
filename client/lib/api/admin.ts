@@ -91,6 +91,9 @@ export type AdminProduct = Product & {
   attributes: any;
 };
 
+export type AdminProductSort = "newest" | "oldest" | "price-asc" | "price-desc" | "name-asc" | "name-desc" | "stock-asc" | "stock-desc";
+export type AdminProductStatusFilter = "ALL" | "ACTIVE" | "INACTIVE" | "DRAFT" | "ARCHIVED";
+
 export type AdminReview = {
   id: string;
   rating: number;
@@ -105,8 +108,25 @@ export async function getAdminOverview(token: string): Promise<AdminOverview> {
   return requestApi<AdminOverview>("/admin", { token });
 }
 
-export async function getAdminProducts(token: string): Promise<{ items: AdminProduct[]; total: number }> {
-  return requestApi<{ items: AdminProduct[]; total: number }>("/admin/products", { token });
+export async function getAdminProducts(
+  token: string,
+  params?: {
+    search?: string;
+    status?: AdminProductStatusFilter;
+    sort?: AdminProductSort;
+    page?: number;
+    limit?: number;
+  }
+): Promise<{ items: AdminProduct[]; total: number }> {
+  const query = new URLSearchParams();
+  if (params?.search) query.append("search", params.search);
+  if (params?.status && params.status !== "ALL") query.append("status", params.status);
+  if (params?.sort) query.append("sort", params.sort);
+  if (params?.page) query.append("page", String(params.page));
+  if (params?.limit) query.append("limit", String(params.limit));
+
+  const queryString = query.toString();
+  return requestApi<{ items: AdminProduct[]; total: number }>(`/admin/products${queryString ? `?${queryString}` : ""}`, { token });
 }
 
 export async function getAdminProduct(token: string, productId: string): Promise<AdminProduct> {

@@ -4,7 +4,7 @@ import { productService } from "../services/productService";
 export const productController = {
   async list(request: Request, response: Response, next: NextFunction) {
     try {
-      const { categoryId, search, minPrice, maxPrice, dealType, dealsOnly, page, limit } = request.query as any;
+      const { categoryId, search, minPrice, maxPrice, dealType, dealsOnly, page, limit, sort } = request.query as any;
       const result = await productService.getAllProducts({
         categoryId,
         search,
@@ -14,6 +14,7 @@ export const productController = {
         dealsOnly,
         page,
         limit,
+        sort,
       });
       response.json(result);
     } catch (error) {
