@@ -37,6 +37,55 @@ export type AdminOverview = {
   }>;
 };
 
+export type AdminCartRules = {
+  minCartValue: number;
+  maxQuantityPerProduct: number;
+  freeShippingThreshold: number;
+  taxRatePercent: number;
+  abandonedHours: number;
+  updatedAt: string;
+};
+
+export type AdminAbandonedCart = {
+  id: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+  itemCount: number;
+  subtotal: number;
+  lastActivityAt: string;
+  items: Array<{
+    id: string;
+    productId: string;
+    productName: string;
+    productSlug: string;
+    quantity: number;
+    stock: number;
+    unitPrice: number;
+  }>;
+};
+
+export type AdminCartOverview = {
+  metrics: {
+    activeCarts: number;
+    abandonedCarts: number;
+    abandonedRate: number;
+    averageCartValue: number;
+    cartToCheckoutConversionRate: number;
+    stockIssueItems: number;
+  };
+  topProducts: Array<{
+    productId: string;
+    productName: string;
+    productSlug: string;
+    totalQuantity: number;
+  }>;
+  abandonedPreview: AdminAbandonedCart[];
+  rules: AdminCartRules;
+};
+
 export type AdminOrder = {
   id: string;
   status: "PENDING" | "PAID" | "PACKED" | "SHIPPED" | "DELIVERED" | "CANCELLED";
@@ -301,6 +350,47 @@ export async function updateAdminDeal(
 ): Promise<Product> {
   return requestApi<Product>(`/admin/deals/${productId}`, {
     method: "PATCH",
+    token,
+    body: input,
+  });
+}
+
+export async function getAdminCartOverview(token: string): Promise<AdminCartOverview> {
+  return requestApi<AdminCartOverview>("/admin/cart/overview", { token });
+}
+
+export async function getAdminAbandonedCarts(
+  token: string,
+  params?: { hours?: number; page?: number; limit?: number }
+): Promise<{ page: number; limit: number; total: number; cutoff: string; items: AdminAbandonedCart[] }> {
+  const query = new URLSearchParams();
+  if (params?.hours) query.append("hours", String(params.hours));
+  if (params?.page) query.append("page", String(params.page));
+  if (params?.limit) query.append("limit", String(params.limit));
+
+  const queryString = query.toString();
+  return requestApi<{ page: number; limit: number; total: number; cutoff: string; items: AdminAbandonedCart[] }>(
+    `/admin/cart/abandoned${queryString ? `?${queryString}` : ""}`,
+    { token }
+  );
+}
+
+export async function getAdminCartRules(token: string): Promise<AdminCartRules> {
+  return requestApi<AdminCartRules>("/admin/cart/rules", { token });
+}
+
+export async function updateAdminCartRules(
+  token: string,
+  input: {
+    minCartValue: number;
+    maxQuantityPerProduct: number;
+    freeShippingThreshold: number;
+    taxRatePercent: number;
+    abandonedHours: number;
+  }
+): Promise<AdminCartRules> {
+  return requestApi<AdminCartRules>("/admin/cart/rules", {
+    method: "PUT",
     token,
     body: input,
   });

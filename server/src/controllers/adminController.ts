@@ -54,6 +54,20 @@ const updateReviewStatusSchema = z.object({
   status: z.nativeEnum(ReviewStatus),
 });
 
+const abandonedCartQuerySchema = z.object({
+  hours: z.coerce.number().int().min(1).max(24 * 30).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+const updateCartRulesSchema = z.object({
+  minCartValue: z.coerce.number().min(0).max(1_000_000),
+  maxQuantityPerProduct: z.coerce.number().int().min(1).max(999),
+  freeShippingThreshold: z.coerce.number().min(0).max(1_000_000),
+  taxRatePercent: z.coerce.number().min(0).max(100),
+  abandonedHours: z.coerce.number().int().min(1).max(24 * 30),
+});
+
 const allowedOrderStatusTransitions: Record<string, string[]> = {
   PENDING: ["PAID", "CANCELLED"],
   PAID: ["PACKED", "CANCELLED"],
@@ -95,6 +109,92 @@ function serializeAdminOrder(order: {
     items: order.items.map((item) => ({
       ...item,
       unitPrice: Number(item.unitPrice),
+    })),
+  };
+}
+
+function toPercentage(numerator: number, denominator: number) {
+  if (!denominator) {
+    return 0;
+  }
+
+  return Number(((numerator / denominator) * 100).toFixed(2));
+}
+
+function toCurrency(value: number) {
+  return Number(value.toFixed(2));
+}
+
+async function getOrCreateCartRuleConfig() {
+  return prisma.cartRuleConfig.upsert({
+    where: { id: "default" },
+    update: {},
+    create: {
+      id: "default",
+    },
+  });
+}
+
+function serializeCartRules(config: {
+  minCartValue: { toString(): string } | number;
+  maxQuantityPerProduct: number;
+  freeShippingThreshold: { toString(): string } | number;
+  taxRatePercent: { toString(): string } | number;
+  abandonedHours: number;
+  updatedAt: Date;
+}) {
+  return {
+    minCartValue: Number(config.minCartValue),
+    maxQuantityPerProduct: config.maxQuantityPerProduct,
+    freeShippingThreshold: Number(config.freeShippingThreshold),
+    taxRatePercent: Number(config.taxRatePercent),
+    abandonedHours: config.abandonedHours,
+    updatedAt: config.updatedAt,
+  };
+}
+
+function serializeAbandonedCart(cart: {
+  id: string;
+  userId: string;
+  updatedAt: Date;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+  items: Array<{
+    id: string;
+    quantity: number;
+    product: {
+      id: string;
+      name: string;
+      slug: string;
+      price: { toString(): string } | number;
+      stock: number;
+    };
+  }>;
+}) {
+  const itemCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+  const subtotal = cart.items.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
+
+  return {
+    id: cart.id,
+    user: {
+      id: cart.user.id,
+      name: cart.user.name,
+      email: cart.user.email,
+    },
+    itemCount,
+    subtotal: toCurrency(subtotal),
+    lastActivityAt: cart.updatedAt,
+    items: cart.items.map((item) => ({
+      id: item.id,
+      productId: item.product.id,
+      productName: item.product.name,
+      productSlug: item.product.slug,
+      quantity: item.quantity,
+      stock: item.product.stock,
+      unitPrice: Number(item.product.price),
     })),
   };
 }
@@ -224,6 +324,271 @@ export const adminController = {
         })),
         recentUsers,
       });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async cartOverview(_request: Request, response: Response, next: NextFunction) {
+    try {
+      const ruleConfig = await getOrCreateCartRuleConfig();
+      const abandonedCutoff = new Date(Date.now() - ruleConfig.abandonedHours * 60 * 60 * 1000);
+
+      const [
+        activeCartsCount,
+        abandonedCartsCount,
+        cartsWithItems,
+        convertedCartsCount,
+        topCartItems,
+        stockSensitiveCarts,
+        abandonedPreview,
+      ] = await Promise.all([
+        prisma.cart.count({ where: { items: { some: {} } } }),
+        prisma.cart.count({
+          where: {
+            updatedAt: { lte: abandonedCutoff },
+            items: { some: {} },
+          },
+        }),
+        prisma.cart.findMany({
+          where: { items: { some: {} } },
+          include: {
+            items: {
+              include: {
+                product: {
+                  select: {
+                    price: true,
+                  },
+                },
+              },
+            },
+          },
+        }),
+        prisma.cart.count({
+          where: {
+            items: { some: {} },
+            user: {
+              orders: {
+                some: {},
+              },
+            },
+          },
+        }),
+        prisma.cartItem.groupBy({
+          by: ["productId"],
+          _sum: {
+            quantity: true,
+          },
+          orderBy: {
+            _sum: {
+              quantity: "desc",
+            },
+          },
+          take: 5,
+        }),
+        prisma.cart.findMany({
+          where: { items: { some: {} } },
+          select: {
+            items: {
+              select: {
+                quantity: true,
+                product: {
+                  select: {
+                    stock: true,
+                  },
+                },
+              },
+            },
+          },
+        }),
+        prisma.cart.findMany({
+          where: {
+            updatedAt: { lte: abandonedCutoff },
+            items: { some: {} },
+          },
+          orderBy: { updatedAt: "asc" },
+          take: 8,
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            items: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    price: true,
+                    stock: true,
+                  },
+                },
+              },
+            },
+          },
+        }),
+      ]);
+
+      const productIds = topCartItems.map((item) => item.productId);
+      const products = productIds.length
+        ? await prisma.product.findMany({
+            where: {
+              id: {
+                in: productIds,
+              },
+            },
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          })
+        : [];
+
+      const productsById = new Map(products.map((product) => [product.id, product]));
+      const topProducts = topCartItems.map((item) => ({
+        productId: item.productId,
+        productName: productsById.get(item.productId)?.name ?? "Unknown product",
+        productSlug: productsById.get(item.productId)?.slug ?? "",
+        totalQuantity: item._sum.quantity ?? 0,
+      }));
+
+      const averageCartValue = cartsWithItems.length
+        ? toCurrency(
+            cartsWithItems.reduce((sum, cart) => {
+              const subtotal = cart.items.reduce(
+                (innerSum, item) => innerSum + Number(item.product.price) * item.quantity,
+                0
+              );
+
+              return sum + subtotal;
+            }, 0) / cartsWithItems.length
+          )
+        : 0;
+
+      const stockIssueItems = stockSensitiveCarts.reduce((sum, cart) => {
+        const issues = cart.items.filter((item) => item.quantity > item.product.stock || item.product.stock <= 0);
+        return sum + issues.length;
+      }, 0);
+
+      response.json({
+        metrics: {
+          activeCarts: activeCartsCount,
+          abandonedCarts: abandonedCartsCount,
+          abandonedRate: toPercentage(abandonedCartsCount, activeCartsCount),
+          averageCartValue,
+          cartToCheckoutConversionRate: toPercentage(convertedCartsCount, activeCartsCount),
+          stockIssueItems,
+        },
+        topProducts,
+        abandonedPreview: abandonedPreview.map(serializeAbandonedCart),
+        rules: serializeCartRules(ruleConfig),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async listAbandonedCarts(request: Request, response: Response, next: NextFunction) {
+    try {
+      const query = abandonedCartQuerySchema.parse(request.query);
+      const fallbackRules = await getOrCreateCartRuleConfig();
+      const abandonedHours = query.hours ?? fallbackRules.abandonedHours;
+      const cutoff = new Date(Date.now() - abandonedHours * 60 * 60 * 1000);
+      const skip = (query.page - 1) * query.limit;
+
+      const [total, carts] = await Promise.all([
+        prisma.cart.count({
+          where: {
+            updatedAt: { lte: cutoff },
+            items: { some: {} },
+          },
+        }),
+        prisma.cart.findMany({
+          where: {
+            updatedAt: { lte: cutoff },
+            items: { some: {} },
+          },
+          orderBy: { updatedAt: "asc" },
+          skip,
+          take: query.limit,
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            items: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    price: true,
+                    stock: true,
+                  },
+                },
+              },
+            },
+          },
+        }),
+      ]);
+
+      response.json({
+        page: query.page,
+        limit: query.limit,
+        total,
+        cutoff,
+        items: carts.map(serializeAbandonedCart),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getCartRules(_request: Request, response: Response, next: NextFunction) {
+    try {
+      const config = await getOrCreateCartRuleConfig();
+      response.json(serializeCartRules(config));
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updateCartRules(request: Request, response: Response, next: NextFunction) {
+    try {
+      const payload = updateCartRulesSchema.parse(request.body);
+      const userId = request.user?.id ?? null;
+
+      const updated = await prisma.cartRuleConfig.upsert({
+        where: { id: "default" },
+        update: {
+          minCartValue: payload.minCartValue,
+          maxQuantityPerProduct: payload.maxQuantityPerProduct,
+          freeShippingThreshold: payload.freeShippingThreshold,
+          taxRatePercent: payload.taxRatePercent,
+          abandonedHours: payload.abandonedHours,
+          updatedById: userId,
+        },
+        create: {
+          id: "default",
+          minCartValue: payload.minCartValue,
+          maxQuantityPerProduct: payload.maxQuantityPerProduct,
+          freeShippingThreshold: payload.freeShippingThreshold,
+          taxRatePercent: payload.taxRatePercent,
+          abandonedHours: payload.abandonedHours,
+          updatedById: userId,
+        },
+      });
+
+      response.json(serializeCartRules(updated));
     } catch (error) {
       next(error);
     }
