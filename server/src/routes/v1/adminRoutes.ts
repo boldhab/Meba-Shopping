@@ -23,3 +23,7 @@ adminRoutes.get("/users/:id", authMiddleware, adminMiddleware, adminController.g
 adminRoutes.patch("/deals/:id", authMiddleware, adminMiddleware, adminController.updateDeal);
 adminRoutes.patch("/reviews/:id/status", authMiddleware, adminMiddleware, adminController.updateReviewStatus);
 adminRoutes.delete("/reviews/:id", authMiddleware, adminMiddleware, adminController.deleteReview);
+adminRoutes.get("/cart/overview", authMiddleware, adminMiddleware, adminController.cartOverview);
+adminRoutes.get("/cart/abandoned", authMiddleware, adminMiddleware, adminController.listAbandonedCarts);
+adminRoutes.get("/cart/rules", authMiddleware, adminMiddleware, adminController.getCartRules);
+adminRoutes.put("/cart/rules", authMiddleware, adminMiddleware, adminController.updateCartRules);
