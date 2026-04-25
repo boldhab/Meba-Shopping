@@ -155,13 +155,13 @@ function serializeCartRules(config: {
 
 function serializeAbandonedCart(cart: {
   id: string;
-  userId: string;
+  userId: string | null;
   updatedAt: Date;
   user: {
     id: string;
     name: string | null;
     email: string;
-  };
+  } | null;
   items: Array<{
     id: string;
     quantity: number;
@@ -179,11 +179,11 @@ function serializeAbandonedCart(cart: {
 
   return {
     id: cart.id,
-    user: {
+    user: cart.user ? {
       id: cart.user.id,
       name: cart.user.name,
       email: cart.user.email,
-    },
+    } : null,
     itemCount,
     subtotal: toCurrency(subtotal),
     lastActivityAt: cart.updatedAt,

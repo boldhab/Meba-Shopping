@@ -1,4 +1,4 @@
-import { cartRepository } from "../repositories/cartRepository";
+import { cartRepository, type CartIdentifier } from "../repositories/cartRepository";
 import { ApiError } from "../utils/apiError";
 
 type MergeCartItemInput = {
@@ -44,12 +44,12 @@ export function normalizeUpdateQuantity(quantity?: number) {
 }
 
 export const cartService = {
-	async getUserCart(userId: string) {
-		return cartRepository.getCartByUserId(userId);
+	async getCart(id: CartIdentifier) {
+		return cartRepository.getCart(id);
 	},
 
-	async getCartQuote(userId: string) {
-		return cartRepository.getCartQuote(userId);
+	async getCartQuote(id: CartIdentifier) {
+		return cartRepository.getCartQuote(id);
 	},
 
 	async getGuestCartQuote(items: QuoteCartItemInput[], couponCode?: string) {
@@ -65,23 +65,23 @@ export const cartService = {
 		return cartRepository.getGuestCartQuote(normalizedItems, couponCode);
 	},
 
-	async applyCoupon(userId: string, couponCode?: string) {
+	async applyCoupon(id: CartIdentifier, couponCode?: string) {
 		if (!couponCode?.trim()) {
 			throw new ApiError(400, "couponCode is required.");
 		}
 
-		return cartRepository.applyCoupon(userId, couponCode.trim());
+		return cartRepository.applyCoupon(id, couponCode.trim());
 	},
 
-	async removeCoupon(userId: string) {
-		return cartRepository.removeCoupon(userId);
+	async removeCoupon(id: CartIdentifier) {
+		return cartRepository.removeCoupon(id);
 	},
 
 	async addItem(
-		userId: string,
+		id: CartIdentifier,
 		input: { productId?: string; quantity?: number; variantId?: string | null; variantLabel?: string | null }
 	) {
-		return cartRepository.addItem(userId, {
+		return cartRepository.addItem(id, {
 			productId: requireProductId(input.productId),
 			quantity: normalizeAddQuantity(input.quantity),
 			variantId: input.variantId,
@@ -90,32 +90,33 @@ export const cartService = {
 	},
 
 	async updateItemQuantity(
-		userId: string,
+		id: CartIdentifier,
 		input: { productId?: string; quantity?: number; variantId?: string | null }
 	) {
-		return cartRepository.updateItemQuantity(userId, {
+		return cartRepository.updateItemQuantity(id, {
 			productId: requireProductId(input.productId),
 			quantity: normalizeUpdateQuantity(input.quantity),
 			variantId: input.variantId,
 		});
 	},
 
-	async removeItem(userId: string, input: { productId?: string; variantId?: string | null }) {
-		return cartRepository.removeItem(userId, {
+	async removeItem(id: CartIdentifier, input: { productId?: string; variantId?: string | null }) {
+		return cartRepository.removeItem(id, {
 			productId: requireProductId(input.productId),
 			variantId: input.variantId,
 		});
 	},
 
-	async clearCart(userId: string) {
-		return cartRepository.clearCart(userId);
+	async clearCart(id: CartIdentifier) {
+		return cartRepository.clearCart(id);
 	},
 
 	async mergeGuestCart(userId: string, items: MergeCartItemInput[]) {
+		const id = { userId };
 		for (const item of items) {
 			if (!item.productId?.trim()) continue;
 
-			await cartRepository.addItem(userId, {
+			await cartRepository.addItem(id, {
 				productId: item.productId,
 				quantity: normalizeAddQuantity(item.quantity),
 				variantId: item.variantId,
@@ -123,6 +124,6 @@ export const cartService = {
 			});
 		}
 
-		return cartRepository.getCartByUserId(userId);
+		return cartRepository.getCart(id);
 	},
 };

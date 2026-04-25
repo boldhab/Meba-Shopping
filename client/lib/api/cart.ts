@@ -18,6 +18,7 @@ export type CartState = {
 
 export type CartQuote = {
   items: Array<CartItem & { id: string }>;
+  couponCode: string | null;
   totals: {
     subtotal: number;
     discount: number;
@@ -267,4 +268,32 @@ export async function mergeGuestCartToServer(token: string): Promise<CartState> 
 
 export async function getCartQuote(token: string): Promise<CartQuote> {
   return requestApi<CartQuote>("/cart/quote", { token });
+}
+
+export async function getGuestCartQuote(
+  items: Array<Pick<CartItem, "productId" | "quantity" | "variantId" | "variantLabel">>,
+  couponCode?: string | null
+): Promise<CartQuote> {
+  return requestApi<CartQuote>("/cart/quote/guest", {
+    method: "POST",
+    body: {
+      items,
+      couponCode: couponCode ?? undefined,
+    },
+  });
+}
+
+export async function applyCartCoupon(token: string, couponCode: string): Promise<CartQuote> {
+  return requestApi<CartQuote>("/cart/coupon", {
+    method: "POST",
+    token,
+    body: { couponCode },
+  });
+}
+
+export async function removeCartCoupon(token: string): Promise<CartQuote> {
+  return requestApi<CartQuote>("/cart/coupon", {
+    method: "DELETE",
+    token,
+  });
 }

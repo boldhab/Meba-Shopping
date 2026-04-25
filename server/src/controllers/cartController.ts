@@ -2,6 +2,16 @@ import type { NextFunction, Request, Response } from "express";
 import { ApiError } from "../utils/apiError";
 import { cartService } from "../services/cartService";
 
+function getCartIdentifier(request: Request) {
+  const userId = request.user?.id;
+  const guestToken = request.headers["x-guest-token"];
+
+  if (userId) return { userId };
+  if (typeof guestToken === "string" && guestToken.trim()) return { guestToken: guestToken.trim() };
+
+  throw new ApiError(401, "Authentication or guest token is required.");
+}
+
 export const cartController = {
   async getGuestQuote(request: Request, response: Response, next: NextFunction) {
     try {
@@ -18,12 +28,8 @@ export const cartController = {
 
   async getCart(request: Request, response: Response, next: NextFunction) {
     try {
-      const userId = request.user?.id;
-      if (!userId) {
-        throw new ApiError(401, "Unauthorized.");
-      }
-
-      const result = await cartService.getUserCart(userId);
+      const id = getCartIdentifier(request);
+      const result = await cartService.getCart(id);
       response.json(result);
     } catch (error) {
       next(error);
@@ -32,12 +38,8 @@ export const cartController = {
 
   async getQuote(request: Request, response: Response, next: NextFunction) {
     try {
-      const userId = request.user?.id;
-      if (!userId) {
-        throw new ApiError(401, "Unauthorized.");
-      }
-
-      const result = await cartService.getCartQuote(userId);
+      const id = getCartIdentifier(request);
+      const result = await cartService.getCartQuote(id);
       response.json(result);
     } catch (error) {
       next(error);
@@ -46,16 +48,12 @@ export const cartController = {
 
   async applyCoupon(request: Request, response: Response, next: NextFunction) {
     try {
-      const userId = request.user?.id;
-      if (!userId) {
-        throw new ApiError(401, "Unauthorized.");
-      }
-
+      const id = getCartIdentifier(request);
       const couponCode = typeof (request.body as any)?.couponCode === "string"
         ? (request.body as any).couponCode
         : undefined;
 
-      const result = await cartService.applyCoupon(userId, couponCode);
+      const result = await cartService.applyCoupon(id, couponCode);
       response.json(result);
     } catch (error) {
       next(error);
@@ -64,12 +62,8 @@ export const cartController = {
 
   async removeCoupon(request: Request, response: Response, next: NextFunction) {
     try {
-      const userId = request.user?.id;
-      if (!userId) {
-        throw new ApiError(401, "Unauthorized.");
-      }
-
-      const result = await cartService.removeCoupon(userId);
+      const id = getCartIdentifier(request);
+      const result = await cartService.removeCoupon(id);
       response.json(result);
     } catch (error) {
       next(error);
@@ -78,12 +72,8 @@ export const cartController = {
 
   async addItem(request: Request, response: Response, next: NextFunction) {
     try {
-      const userId = request.user?.id;
-      if (!userId) {
-        throw new ApiError(401, "Unauthorized.");
-      }
-
-      const result = await cartService.addItem(userId, request.body as any);
+      const id = getCartIdentifier(request);
+      const result = await cartService.addItem(id, request.body as any);
       response.status(201).json(result);
     } catch (error) {
       next(error);
@@ -92,12 +82,8 @@ export const cartController = {
 
   async updateItemQuantity(request: Request, response: Response, next: NextFunction) {
     try {
-      const userId = request.user?.id;
-      if (!userId) {
-        throw new ApiError(401, "Unauthorized.");
-      }
-
-      const result = await cartService.updateItemQuantity(userId, request.body as any);
+      const id = getCartIdentifier(request);
+      const result = await cartService.updateItemQuantity(id, request.body as any);
       response.json(result);
     } catch (error) {
       next(error);
@@ -106,12 +92,8 @@ export const cartController = {
 
   async removeItem(request: Request, response: Response, next: NextFunction) {
     try {
-      const userId = request.user?.id;
-      if (!userId) {
-        throw new ApiError(401, "Unauthorized.");
-      }
-
-      const result = await cartService.removeItem(userId, request.body as any);
+      const id = getCartIdentifier(request);
+      const result = await cartService.removeItem(id, request.body as any);
       response.json(result);
     } catch (error) {
       next(error);
@@ -120,12 +102,8 @@ export const cartController = {
 
   async clearCart(request: Request, response: Response, next: NextFunction) {
     try {
-      const userId = request.user?.id;
-      if (!userId) {
-        throw new ApiError(401, "Unauthorized.");
-      }
-
-      const result = await cartService.clearCart(userId);
+      const id = getCartIdentifier(request);
+      const result = await cartService.clearCart(id);
       response.json(result);
     } catch (error) {
       next(error);
