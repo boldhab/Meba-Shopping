@@ -16,6 +16,41 @@ export type CartState = {
   items: CartItem[];
 };
 
+export type CartQuote = {
+  items: Array<CartItem & { id: string }>;
+  totals: {
+    subtotal: number;
+    discount: number;
+    shipping: number;
+    tax: number;
+    total: number;
+  };
+  rules: {
+    minCartValue: number;
+    maxQuantityPerProduct: number;
+    freeShippingThreshold: number;
+    taxRatePercent: number;
+    abandonedHours: number;
+  };
+  validation: {
+    minCartValueGap: number;
+    meetsMinimumCartValue: boolean;
+    stockIssues: Array<{
+      productId: string;
+      name: string;
+      requestedQuantity: number;
+      availableStock: number;
+    }>;
+    quantityIssues: Array<{
+      productId: string;
+      name: string;
+      requestedQuantity: number;
+      maxAllowed: number;
+    }>;
+    checkoutAllowed: boolean;
+  };
+};
+
 type CartApiItem = Omit<CartItem, "imageUrl"> & {
   imageUrl?: string;
 };
@@ -228,4 +263,8 @@ export async function mergeGuestCartToServer(token: string): Promise<CartState> 
 
   clearCartStorage();
   return normalizeCartState(merged);
+}
+
+export async function getCartQuote(token: string): Promise<CartQuote> {
+  return requestApi<CartQuote>("/cart/quote", { token });
 }

@@ -8,6 +8,13 @@ type MergeCartItemInput = {
 	variantLabel?: string | null;
 };
 
+type QuoteCartItemInput = {
+	productId?: string;
+	quantity?: number;
+	variantId?: string | null;
+	variantLabel?: string | null;
+};
+
 export function requireProductId(productId?: string) {
 	if (!productId?.trim()) {
 		throw new ApiError(400, "productId is required.");
@@ -39,6 +46,35 @@ export function normalizeUpdateQuantity(quantity?: number) {
 export const cartService = {
 	async getUserCart(userId: string) {
 		return cartRepository.getCartByUserId(userId);
+	},
+
+	async getCartQuote(userId: string) {
+		return cartRepository.getCartQuote(userId);
+	},
+
+	async getGuestCartQuote(items: QuoteCartItemInput[], couponCode?: string) {
+		const normalizedItems = items
+			.filter((item) => typeof item?.productId === "string" && item.productId.trim().length > 0)
+			.map((item) => ({
+				productId: item.productId!.trim(),
+				quantity: normalizeAddQuantity(item.quantity),
+				variantId: item.variantId,
+				variantLabel: item.variantLabel,
+			}));
+
+		return cartRepository.getGuestCartQuote(normalizedItems, couponCode);
+	},
+
+	async applyCoupon(userId: string, couponCode?: string) {
+		if (!couponCode?.trim()) {
+			throw new ApiError(400, "couponCode is required.");
+		}
+
+		return cartRepository.applyCoupon(userId, couponCode.trim());
+	},
+
+	async removeCoupon(userId: string) {
+		return cartRepository.removeCoupon(userId);
 	},
 
 	async addItem(

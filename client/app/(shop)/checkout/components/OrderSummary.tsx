@@ -5,7 +5,18 @@ import { useCart } from "@/lib/hooks/useCart";
 import { formatPrice } from "@/lib/utils/formatPrice";
 
 export function OrderSummary() {
-  const { items, totalItems, subtotal, total, discountAmount, couponCode } = useCart();
+  const {
+    items,
+    totalItems,
+    subtotal,
+    total,
+    discountAmount,
+    couponCode,
+    shippingAmount,
+    taxAmount,
+    minCartValueGap,
+    checkoutAllowed,
+  } = useCart();
 
   if (items.length === 0) {
     return (
@@ -14,6 +25,20 @@ export function OrderSummary() {
         <p className="m-0 text-sm text-(--color-muted)">Your cart is empty, so there is nothing to place yet.</p>
         <Link href="/products" className="button inline-flex w-fit">
           Browse Products
+        </Link>
+      </div>
+    );
+  }
+
+  if (!checkoutAllowed) {
+    return (
+      <div className="panel grid gap-3">
+        <h2 className="m-0">Checkout requirements not met</h2>
+        <p className="m-0 text-sm text-(--color-muted)">
+          Add {formatPrice(minCartValueGap)} more to meet the minimum checkout amount.
+        </p>
+        <Link href="/cart" className="button inline-flex w-fit">
+          Back to Cart
         </Link>
       </div>
     );
@@ -53,7 +78,11 @@ export function OrderSummary() {
         </div>
         <div className="flex justify-between">
           <span>Shipping</span>
-          <strong className="text-(--color-text)">Free</strong>
+          <strong className="text-(--color-text)">{shippingAmount === 0 ? "Free" : formatPrice(shippingAmount)}</strong>
+        </div>
+        <div className="flex justify-between">
+          <span>Tax</span>
+          <strong className="text-(--color-text)">{formatPrice(taxAmount)}</strong>
         </div>
       </div>
 
