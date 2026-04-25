@@ -27,14 +27,19 @@ const emptyRuleForm: RuleFormState = {
   abandonedHours: "24",
 };
 
-const metricCards = [
+const metricCards: Array<{
+  key: keyof AdminCartOverview["metrics"];
+  label: string;
+  suffix?: string;
+  money?: boolean;
+}> = [
   { key: "activeCarts", label: "Active carts" },
   { key: "abandonedCarts", label: "Abandoned carts" },
   { key: "abandonedRate", label: "Abandonment rate", suffix: "%" },
   { key: "averageCartValue", label: "Avg. cart value", money: true },
   { key: "cartToCheckoutConversionRate", label: "Cart to checkout", suffix: "%" },
   { key: "stockIssueItems", label: "Stock issue items" },
-] as const;
+];
 
 function mapRulesToForm(overview: AdminCartOverview | null): RuleFormState {
   if (!overview) {
