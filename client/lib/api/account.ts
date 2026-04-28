@@ -93,6 +93,7 @@ type AccountStore = {
 };
 
 const STORAGE_KEY = "meba.account.store";
+export const ACCOUNT_STORE_UPDATED_EVENT = "meba:account-store-updated";
 
 const defaultStore: AccountStore = {
   orders: [
@@ -261,6 +262,7 @@ function readStore(): AccountStore {
 function writeStore(store: AccountStore) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  window.dispatchEvent(new Event(ACCOUNT_STORE_UPDATED_EVENT));
 }
 
 export function getAccountStore() {

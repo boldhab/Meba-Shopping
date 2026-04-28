@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { getUnreadMessageCount } from "@/lib/api/account";
+import { ACCOUNT_STORE_UPDATED_EVENT, getUnreadMessageCount } from "@/lib/api/account";
 
 const tabs = [
   { href: "/account", label: "Dashboard" },
@@ -22,8 +22,13 @@ export function AccountTabs() {
     refresh();
 
     const onStorage = () => refresh();
+    const onAccountUpdate = () => refresh();
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener(ACCOUNT_STORE_UPDATED_EVENT, onAccountUpdate);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(ACCOUNT_STORE_UPDATED_EVENT, onAccountUpdate);
+    };
   }, []);
 
   return (
