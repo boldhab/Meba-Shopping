@@ -123,6 +123,8 @@ export default function OrdersPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
+            title="Filter by order status"
+            aria-label="Filter by order status"
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
           >
             <option>All</option>
@@ -137,12 +139,16 @@ export default function OrdersPage() {
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
             type="date"
+            title="From date"
+            aria-label="From date"
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
           />
           <input
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
             type="date"
+            title="To date"
+            aria-label="To date"
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
           />
         </div>
