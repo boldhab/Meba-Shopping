@@ -78,8 +78,8 @@ export default function SettingsPage() {
           <input className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={profile.fullName} onChange={(e) => setProfile((p) => ({ ...p, fullName: e.target.value }))} placeholder="Full name" />
           <input className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={profile.email} onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))} placeholder="Email" />
           <input className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={profile.phone} onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))} placeholder="Phone" />
-          <input className="rounded-lg border border-slate-200 px-3 py-2 text-sm" type="date" value={profile.dob} onChange={(e) => setProfile((p) => ({ ...p, dob: e.target.value }))} />
-          <select className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={profile.gender} onChange={(e) => setProfile((p) => ({ ...p, gender: e.target.value }))}>
+          <input title="Date of birth" aria-label="Date of birth" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" type="date" value={profile.dob} onChange={(e) => setProfile((p) => ({ ...p, dob: e.target.value }))} />
+          <select title="Gender" aria-label="Gender" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={profile.gender} onChange={(e) => setProfile((p) => ({ ...p, gender: e.target.value }))}>
             <option>Male</option>
             <option>Female</option>
             <option>Prefer not to say</option>
@@ -150,11 +150,11 @@ export default function SettingsPage() {
       <article className="rounded-2xl border border-slate-200 bg-white p-4">
         <h2 className="text-lg font-bold text-slate-900">Preferences</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <select className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={prefs.currency} onChange={(e) => setPrefs((p) => ({ ...p, currency: e.target.value }))}>
+          <select title="Currency" aria-label="Currency" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={prefs.currency} onChange={(e) => setPrefs((p) => ({ ...p, currency: e.target.value }))}>
             <option>ETB</option>
             <option>USD</option>
           </select>
-          <select className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={prefs.language} onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value }))}>
+          <select title="Language" aria-label="Language" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={prefs.language} onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value }))}>
             <option>English</option>
             <option>Amharic</option>
           </select>
