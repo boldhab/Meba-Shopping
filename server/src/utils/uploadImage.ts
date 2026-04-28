@@ -28,8 +28,13 @@ export async function uploadImage(input: {
 
   const signature = signUploadParams(paramsToSign, cloudinary.apiSecret);
   const formData = new FormData();
+  const fileBytes = new Uint8Array(
+    input.buffer.buffer as ArrayBuffer,
+    input.buffer.byteOffset,
+    input.buffer.byteLength
+  );
 
-  formData.append("file", new Blob([input.buffer], { type: input.mimeType }), input.fileName);
+  formData.append("file", new Blob([fileBytes], { type: input.mimeType }), input.fileName);
   formData.append("api_key", cloudinary.apiKey);
   formData.append("timestamp", timestamp);
   formData.append("folder", cloudinary.folder);
