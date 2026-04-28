@@ -33,7 +33,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <a href="https://carrier.example/track" target="_blank" rel="noreferrer" className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          <a href="https://carrier.example/track" target="_blank" rel="noopener noreferrer" className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
             Track shipment
           </a>
           <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Download invoice (PDF)</button>
