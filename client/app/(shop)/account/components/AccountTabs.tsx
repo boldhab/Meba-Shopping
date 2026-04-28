@@ -1,9 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-export const ACCOUNT_UNREAD_MESSAGES = 3;
+import { getUnreadMessageCount } from "@/lib/api/account";
 
 const tabs = [
   { href: "/account", label: "Dashboard" },
@@ -15,6 +15,16 @@ const tabs = [
 
 export function AccountTabs() {
   const pathname = usePathname();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setUnreadCount(getUnreadMessageCount());
+    refresh();
+
+    const onStorage = () => refresh();
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   return (
     <nav className="mb-5 flex flex-wrap gap-2 rounded-2xl border border-amber-100 bg-white/90 p-2">
@@ -32,13 +42,13 @@ export function AccountTabs() {
             }`}
           >
             <span>{tab.label}</span>
-            {tab.href === "/account/messages" && ACCOUNT_UNREAD_MESSAGES > 0 ? (
+            {tab.href === "/account/messages" && unreadCount > 0 ? (
               <span
                 className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-xs ${
                   isActive ? "bg-white text-orange-600" : "bg-orange-500 text-white"
                 }`}
               >
-                {ACCOUNT_UNREAD_MESSAGES}
+                {unreadCount}
               </span>
             ) : null}
           </Link>
