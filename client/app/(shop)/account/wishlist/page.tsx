@@ -1,14 +1,12 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { addCartItem } from "@/lib/api/cart";
 import {
-  getWishlistItems,
-  moveWishlistItemToCart,
+  fetchWishlistItems,
   removeWishlistItem,
-  updateWishlistItems,
   type AccountView,
   type WishlistItem,
 } from "@/lib/api/account";
@@ -19,9 +17,37 @@ function money(value: number) {
 
 export default function WishlistPage() {
   const { token } = useAuth();
-  const [items, setItems] = useState<WishlistItem[]>(() => getWishlistItems());
+  const [items, setItems] = useState<WishlistItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<AccountView>("date");
   const [qtyByItem, setQtyByItem] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadWishlist = async () => {
+      if (!token) {
+        if (isMounted) {
+          setItems([]);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const result = await fetchWishlistItems(token);
+        if (isMounted) setItems(result.items);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadWishlist();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
 
   const sortedItems = useMemo(() => {
     const next = [...items];
@@ -35,15 +61,11 @@ export default function WishlistPage() {
     return next;
   }, [items, sortBy]);
 
-  const syncWishlist = (nextItems: WishlistItem[]) => {
-    setItems(nextItems);
-    updateWishlistItems(() => nextItems);
-  };
-
-  const removeItem = (id: string) => {
+  const removeItem = async (id: string) => {
     const ok = window.confirm("Remove this product from wishlist?");
     if (!ok) return;
-    const nextItems = removeWishlistItem(id);
+    if (!token) return;
+    const nextItems = await removeWishlistItem(token, id);
     setItems(nextItems);
   };
 
@@ -66,7 +88,8 @@ export default function WishlistPage() {
 
   const moveToCart = async (item: WishlistItem) => {
     await addToCart(item);
-    const nextItems = removeWishlistItem(item.id);
+    if (!token) return;
+    const nextItems = await removeWishlistItem(token, item.id);
     setItems(nextItems);
   };
 
@@ -104,7 +127,9 @@ export default function WishlistPage() {
         </div>
       </header>
 
-      {sortedItems.length === 0 ? (
+      {isLoading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Loading wishlist...</div>
+      ) : sortedItems.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Your wishlist is currently empty.</div>
       ) : (
         <div className="grid gap-3">
@@ -151,7 +176,7 @@ export default function WishlistPage() {
                       <button onClick={() => moveToCart(item)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                         Move to cart
                       </button>
-                      <button onClick={() => removeItem(item.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50">
+                      <button onClick={() => void removeItem(item.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50">
                         Remove from wishlist
                       </button>
                       <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
