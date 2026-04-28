@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useState } from "react";
+import { useAuth } from "@/lib/hooks/useAuth";
 import {
-  getAccountSettings,
+  fetchAccountSettings,
   saveAccountSettings,
   type AccountAddress,
   type AccountPreferences,
@@ -10,14 +12,63 @@ import {
 } from "@/lib/api/account";
 
 export default function SettingsPage() {
-  const currentSettings = getAccountSettings();
+  const { token } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   const [saveNotice, setSaveNotice] = useState("");
-  const [addresses, setAddresses] = useState<AccountAddress[]>(currentSettings.addresses);
-  const [profile, setProfile] = useState<AccountProfile>(currentSettings.profile);
-  const [prefs, setPrefs] = useState<AccountPreferences>(currentSettings.preferences);
+  const [addresses, setAddresses] = useState<AccountAddress[]>([]);
+  const [profile, setProfile] = useState<AccountProfile>({
+    fullName: "",
+    email: "",
+    phone: "",
+    dob: "",
+    gender: "",
+  });
+  const [prefs, setPrefs] = useState<AccountPreferences>({
+    emailOrderUpdates: false,
+    emailWishlistAlerts: false,
+    emailPromotions: false,
+    smsAlerts: false,
+    pushNotifications: false,
+    newsletter: false,
+    currency: "ETB",
+    language: "English",
+  });
 
-  const save = (message: string) => {
-    saveAccountSettings({ profile, addresses, preferences: prefs });
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSettings = async () => {
+      if (!token) {
+        if (isMounted) setIsLoading(false);
+        return;
+      }
+
+      try {
+        const currentSettings = await fetchAccountSettings(token);
+        if (isMounted) {
+          setAddresses(currentSettings.addresses);
+          setProfile(currentSettings.profile);
+          setPrefs(currentSettings.preferences);
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
+
+  const save = async (message: string) => {
+    if (!token) return;
+
+    const next = await saveAccountSettings(token, { profile, addresses, preferences: prefs });
+    setAddresses(next.addresses);
+    setProfile(next.profile);
+    setPrefs(next.preferences);
     setSaveNotice(message);
     window.setTimeout(() => setSaveNotice(""), 1800);
   };
@@ -53,6 +104,10 @@ export default function SettingsPage() {
         {saveNotice ? <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{saveNotice}</p> : null}
       </header>
 
+      {isLoading ? (
+        <article className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Loading settings...</article>
+      ) : null}
+
       <article className="rounded-2xl border border-slate-200 bg-white p-4">
         <h2 className="text-lg font-bold text-slate-900">Profile information</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -74,7 +129,7 @@ export default function SettingsPage() {
           <div className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600">Profile picture: upload or change</div>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <button onClick={() => save("Profile updated successfully")} className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-600">Save profile</button>
+          <button onClick={() => void save("Profile updated successfully")} className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-600">Save profile</button>
           <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Verify email</button>
           <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Change email</button>
         </div>
@@ -157,7 +212,7 @@ export default function SettingsPage() {
           </label>
         </div>
 
-        <button onClick={() => save("Settings saved successfully")} className="mt-3 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-600">
+        <button onClick={() => void save("Settings saved successfully")} className="mt-3 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-600">
           Save changes
         </button>
       </article>
