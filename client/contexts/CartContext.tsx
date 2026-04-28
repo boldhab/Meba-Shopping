@@ -58,6 +58,7 @@ function buildGuestQuote(items: CartItem[], couponCode: string | null): CartQuot
 			id: `${item.productId}-${item.variantId ?? "default"}`,
 			...item,
 		})),
+		couponCode,
 		totals: {
 			subtotal,
 			discount,

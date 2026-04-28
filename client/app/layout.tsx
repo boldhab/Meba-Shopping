@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { Providers } from "./providers";
-import "@/styles/globals.css";
-import "@/styles/variables.css";
+import "../styles/globals.css";
+import "../styles/variables.css";
 
 export const metadata: Metadata = {
   title: "Meba Shopping",
