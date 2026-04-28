@@ -155,7 +155,7 @@ export function Navbar() {
         }`}
       >
         {/* Top Bar - Keep minimal */}
-        <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+        <div className="bg-linear-to-r from-slate-900 to-slate-800 text-white">
           <div className="mx-auto flex h-8 max-w-none items-center justify-between px-6 md:px-12 lg:px-20 text-[11px]">
             <div className="flex items-center gap-4">
               <Truck className="h-3 w-3" />
@@ -177,10 +177,10 @@ export function Navbar() {
           <div className="mx-auto flex h-16 max-w-none items-center gap-4 px-6 md:px-12 lg:px-20">
             {/* Logo */}
             <Link href="/" className="flex shrink-0 items-center gap-2 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-linear-to-br from-blue-600 to-indigo-600">
                 <ShoppingBag className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-linear-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
                 Meba
               </span>
             </Link>
@@ -204,6 +204,8 @@ export function Navbar() {
                   {searchText && (
                     <button
                       type="button"
+                      aria-label="Clear search input"
+                      title="Clear search"
                       onClick={() => setSearchText("")}
                       className="mr-2 text-slate-400 hover:text-slate-600"
                     >
@@ -212,7 +214,7 @@ export function Navbar() {
                   )}
                   <button
                     type="submit"
-                    className="mr-1 rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-6 py-1.5 text-sm font-semibold text-white"
+                    className="mr-1 rounded-full bg-linear-to-r from-orange-500 to-red-500 px-6 py-1.5 text-sm font-semibold text-white"
                   >
                     Search
                   </button>
@@ -328,7 +330,7 @@ export function Navbar() {
                           <div className="mt-4 space-y-2">
                             <Link
                               href="/login"
-                              className="block rounded-lg bg-gradient-to-r from-orange-500 to-red-500 py-2 text-center text-sm font-semibold text-white"
+                              className="block rounded-lg bg-linear-to-r from-orange-500 to-red-500 py-2 text-center text-sm font-semibold text-white"
                             >
                               Sign In
                             </Link>
@@ -349,7 +351,7 @@ export function Navbar() {
               {/* Cart Button - Keep as is */}
               <Link
                 href="/cart"
-                className="relative flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-4 py-1.5 text-sm font-semibold text-white"
+                className="relative flex items-center gap-2 rounded-full bg-linear-to-r from-orange-500 to-red-500 px-4 py-1.5 text-sm font-semibold text-white"
               >
                 <ShoppingCart className="h-4 w-4" />
                 Cart
@@ -507,7 +509,7 @@ export function Navbar() {
                   <div className="space-y-3">
                     <Link
                       href="/login"
-                      className="block rounded-lg bg-gradient-to-r from-orange-500 to-red-500 p-3 text-center font-semibold text-white"
+                      className="block rounded-lg bg-linear-to-r from-orange-500 to-red-500 p-3 text-center font-semibold text-white"
                     >
                       Sign In / Register
                     </Link>
@@ -519,7 +521,7 @@ export function Navbar() {
         </AnimatePresence>
       </motion.header>
 
-      <div className="h-[116px]" />
+      <div className="h-29" />
     </>
   );
 }

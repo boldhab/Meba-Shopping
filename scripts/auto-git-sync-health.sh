@@ -28,7 +28,7 @@ if [[ -f "${LOCK_FILE}" ]]; then
   fi
 fi
 
-PROCESS_LINES="$(pgrep -af 'auto-git-sync.sh|git:auto-sync' || true)"
+PROCESS_LINES="$(pgrep -af 'auto-git-sync.sh' | grep -v 'auto-git-sync-health.sh' || true)"
 PROCESS_COUNT="0"
 if [[ -n "${PROCESS_LINES}" ]]; then
   PROCESS_COUNT="$(printf '%s\n' "${PROCESS_LINES}" | sed '/^$/d' | wc -l | tr -d ' ')"

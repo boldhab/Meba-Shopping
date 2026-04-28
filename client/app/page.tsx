@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { getActiveDeals, type DealType, type Product } from "@/lib/api/products";
 import { useEffect, useState } from "react";
@@ -54,12 +54,15 @@ function groupDeals(products: Product[]) {
 }
 
 // Animation variants
-const fadeInUp = {
+const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1];
+const EASE_IN_OUT: [number, number, number, number] = [0.65, 0, 0.35, 1];
+
+const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 60 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE_OUT } }
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -70,19 +73,19 @@ const staggerContainer = {
   }
 };
 
-const cardHover = {
+const cardHover: Variants = {
   hover: {
     scale: 1.02,
-    transition: { duration: 0.3, ease: "easeInOut" }
+    transition: { duration: 0.3, ease: EASE_IN_OUT }
   }
 };
 
-const heroTextVariants = {
+const heroTextVariants: Variants = {
   hidden: { opacity: 0, y: 30 },
   visible: (custom: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: custom * 0.1, duration: 0.6, ease: "easeOut" }
+    transition: { delay: custom * 0.1, duration: 0.6, ease: EASE_OUT }
   })
 };
 
@@ -310,7 +313,6 @@ export default function HomePage() {
             return (
               <motion.div
                 key={dealType}
-                variants={fadeInUp}
                 custom={sectionIndex}
                 initial="hidden"
                 whileInView="visible"

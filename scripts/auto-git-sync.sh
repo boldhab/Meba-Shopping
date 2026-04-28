@@ -20,6 +20,8 @@ KEYWORDS_CSV="${AUTO_GIT_SYNC_KEYWORDS:-auth,login,register,password,user,users,
 REQUIRE_FLAG="${AUTO_GIT_SYNC_REQUIRE_FLAG:-0}"
 ENABLE_FLAG="${AUTO_GIT_SYNC_ENABLE:-0}"
 LOCK_FILE="${REPO_ROOT}/.git/auto-git-sync.lock"
+AUTO_SYNC_GIT_USER_NAME="${AUTO_GIT_SYNC_GIT_USER_NAME:-Auto Sync Bot}"
+AUTO_SYNC_GIT_USER_EMAIL="${AUTO_GIT_SYNC_GIT_USER_EMAIL:-auto-sync@local}"
 
 if [[ "${REQUIRE_FLAG}" == "1" ]] && [[ "${ENABLE_FLAG}" != "1" ]]; then
   echo "AUTO_GIT_SYNC_REQUIRE_FLAG=1, but AUTO_GIT_SYNC_ENABLE is not set to 1."
@@ -39,6 +41,14 @@ if [[ -f "${LOCK_FILE}" ]]; then
     echo "auto-git-sync is already running with PID ${EXISTING_PID}."
     exit 1
   fi
+fi
+
+# Ensure commits can be created even on fresh environments without Git identity configured.
+if [[ -z "$(git config --get user.name || true)" ]]; then
+  git config user.name "${AUTO_SYNC_GIT_USER_NAME}"
+fi
+if [[ -z "$(git config --get user.email || true)" ]]; then
+  git config user.email "${AUTO_SYNC_GIT_USER_EMAIL}"
 fi
 
 echo "$$" > "${LOCK_FILE}"
