@@ -285,14 +285,14 @@ async function updateUserStore(userId: string, updater: (store: AccountStore) =>
   return nextStore;
 }
 
-function sanitizeStore(store: AccountStore) {
-  return clone(store);
+function sanitizeValue<T>(value: T): T {
+  return clone(value);
 }
 
 export const accountService = {
   async getOrders(userId: string) {
     const { store } = await getUserStore(userId);
-    return sanitizeStore(store.orders);
+    return sanitizeValue(store.orders);
   },
 
   async getOrder(userId: string, orderId: string) {
@@ -301,7 +301,7 @@ export const accountService = {
     if (!order) {
       throw new ApiError(404, "Order not found.");
     }
-    return sanitizeStore(order);
+    return sanitizeValue(order);
   },
 
   async cancelOrder(userId: string, orderId: string) {
@@ -322,7 +322,7 @@ export const accountService = {
 
     const order = nextStore.orders.find((item) => item.id === orderId);
     if (!order) throw new ApiError(404, "Order not found.");
-    return sanitizeStore(order);
+    return sanitizeValue(order);
   },
 
   async returnOrder(userId: string, orderId: string) {
@@ -342,12 +342,12 @@ export const accountService = {
 
     const order = nextStore.orders.find((item) => item.id === orderId);
     if (!order) throw new ApiError(404, "Order not found.");
-    return sanitizeStore(order);
+    return sanitizeValue(order);
   },
 
   async getWishlist(userId: string) {
     const { store } = await getUserStore(userId);
-    return sanitizeStore(store.wishlist);
+    return sanitizeValue(store.wishlist);
   },
 
   async addWishlistItem(userId: string, item: WishlistItem) {
@@ -362,7 +362,7 @@ export const accountService = {
       return { ...store, wishlist };
     });
 
-    return sanitizeStore(nextStore.wishlist);
+    return sanitizeValue(nextStore.wishlist);
   },
 
   async updateWishlistItem(userId: string, itemId: string, updates: Partial<WishlistItem>) {
@@ -370,7 +370,7 @@ export const accountService = {
       ...store,
       wishlist: store.wishlist.map((item) => (item.id === itemId ? { ...item, ...updates } : item)),
     }));
-    return sanitizeStore(nextStore.wishlist);
+    return sanitizeValue(nextStore.wishlist);
   },
 
   async removeWishlistItem(userId: string, itemId: string) {
@@ -378,12 +378,12 @@ export const accountService = {
       ...store,
       wishlist: store.wishlist.filter((item) => item.id !== itemId),
     }));
-    return sanitizeStore(nextStore.wishlist);
+    return sanitizeValue(nextStore.wishlist);
   },
 
   async getMessages(userId: string) {
     const { store } = await getUserStore(userId);
-    return sanitizeStore(store.messages);
+    return sanitizeValue(store.messages);
   },
 
   async replyToMessage(userId: string, messageId: string, body: string) {
@@ -404,7 +404,7 @@ export const accountService = {
     }));
     const message = nextStore.messages.find((item) => item.id === messageId);
     if (!message) throw new ApiError(404, "Message not found.");
-    return sanitizeStore(message);
+    return sanitizeValue(message);
   },
 
   async markMessageReadState(userId: string, messageId: string, read: boolean) {
@@ -414,7 +414,7 @@ export const accountService = {
     }));
     const message = nextStore.messages.find((item) => item.id === messageId);
     if (!message) throw new ApiError(404, "Message not found.");
-    return sanitizeStore(message);
+    return sanitizeValue(message);
   },
 
   async archiveMessage(userId: string, messageId: string) {
@@ -424,7 +424,7 @@ export const accountService = {
     }));
     const message = nextStore.messages.find((item) => item.id === messageId);
     if (!message) throw new ApiError(404, "Message not found.");
-    return sanitizeStore(message);
+    return sanitizeValue(message);
   },
 
   async deleteMessage(userId: string, messageId: string) {
@@ -432,12 +432,12 @@ export const accountService = {
       ...store,
       messages: store.messages.filter((message) => message.id !== messageId),
     }));
-    return sanitizeStore(nextStore.messages);
+    return sanitizeValue(nextStore.messages);
   },
 
   async getSettings(userId: string) {
     const { store } = await getUserStore(userId);
-    return sanitizeStore(store.settings);
+    return sanitizeValue(store.settings);
   },
 
   async updateSettings(userId: string, settings: AccountSettings) {
@@ -445,7 +445,7 @@ export const accountService = {
       ...store,
       settings,
     }));
-    return sanitizeStore(nextStore.settings);
+    return sanitizeValue(nextStore.settings);
   },
 
   async getUnreadMessageCount(userId: string) {

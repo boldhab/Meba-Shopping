@@ -10,6 +10,10 @@ function getUserId(request: Request) {
   return userId;
 }
 
+function getRouteParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+}
+
 export const accountController = {
   async getOrders(request: Request, response: Response, next: NextFunction) {
     try {
@@ -22,7 +26,7 @@ export const accountController = {
 
   async getOrder(request: Request, response: Response, next: NextFunction) {
     try {
-      const order = await accountService.getOrder(getUserId(request), request.params.orderId);
+      const order = await accountService.getOrder(getUserId(request), getRouteParam(request.params.orderId));
       response.json(order);
     } catch (error) {
       next(error);
@@ -31,7 +35,7 @@ export const accountController = {
 
   async cancelOrder(request: Request, response: Response, next: NextFunction) {
     try {
-      const order = await accountService.cancelOrder(getUserId(request), request.params.orderId);
+      const order = await accountService.cancelOrder(getUserId(request), getRouteParam(request.params.orderId));
       response.json(order);
     } catch (error) {
       next(error);
@@ -40,7 +44,7 @@ export const accountController = {
 
   async returnOrder(request: Request, response: Response, next: NextFunction) {
     try {
-      const order = await accountService.returnOrder(getUserId(request), request.params.orderId);
+      const order = await accountService.returnOrder(getUserId(request), getRouteParam(request.params.orderId));
       response.json(order);
     } catch (error) {
       next(error);
@@ -67,7 +71,7 @@ export const accountController = {
 
   async updateWishlistItem(request: Request, response: Response, next: NextFunction) {
     try {
-      const wishlist = await accountService.updateWishlistItem(getUserId(request), request.params.itemId, request.body);
+      const wishlist = await accountService.updateWishlistItem(getUserId(request), getRouteParam(request.params.itemId), request.body);
       response.json({ items: wishlist });
     } catch (error) {
       next(error);
@@ -76,7 +80,7 @@ export const accountController = {
 
   async deleteWishlistItem(request: Request, response: Response, next: NextFunction) {
     try {
-      const wishlist = await accountService.removeWishlistItem(getUserId(request), request.params.itemId);
+      const wishlist = await accountService.removeWishlistItem(getUserId(request), getRouteParam(request.params.itemId));
       response.json({ items: wishlist });
     } catch (error) {
       next(error);
@@ -94,7 +98,7 @@ export const accountController = {
 
   async replyToMessage(request: Request, response: Response, next: NextFunction) {
     try {
-      const message = await accountService.replyToMessage(getUserId(request), request.params.messageId, request.body.body);
+      const message = await accountService.replyToMessage(getUserId(request), getRouteParam(request.params.messageId), request.body.body);
       response.json(message);
     } catch (error) {
       next(error);
@@ -103,7 +107,7 @@ export const accountController = {
 
   async markMessageRead(request: Request, response: Response, next: NextFunction) {
     try {
-      const message = await accountService.markMessageReadState(getUserId(request), request.params.messageId, request.body.read ?? true);
+      const message = await accountService.markMessageReadState(getUserId(request), getRouteParam(request.params.messageId), request.body.read ?? true);
       response.json(message);
     } catch (error) {
       next(error);
@@ -112,7 +116,7 @@ export const accountController = {
 
   async archiveMessage(request: Request, response: Response, next: NextFunction) {
     try {
-      const message = await accountService.archiveMessage(getUserId(request), request.params.messageId);
+      const message = await accountService.archiveMessage(getUserId(request), getRouteParam(request.params.messageId));
       response.json(message);
     } catch (error) {
       next(error);
@@ -121,7 +125,7 @@ export const accountController = {
 
   async deleteMessage(request: Request, response: Response, next: NextFunction) {
     try {
-      const messages = await accountService.deleteMessage(getUserId(request), request.params.messageId);
+      const messages = await accountService.deleteMessage(getUserId(request), getRouteParam(request.params.messageId));
       response.json({ items: messages });
     } catch (error) {
       next(error);
