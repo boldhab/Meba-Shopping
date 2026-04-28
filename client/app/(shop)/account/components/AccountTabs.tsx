@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ACCOUNT_STORE_UPDATED_EVENT, getUnreadMessageCount } from "@/lib/api/account";
+import { fetchUnreadMessageCount, listenForAccountStoreUpdates } from "@/lib/api/account";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 const tabs = [
   { href: "/account", label: "Dashboard" },
@@ -14,22 +15,38 @@ const tabs = [
 ];
 
 export function AccountTabs() {
+  const { token } = useAuth();
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    const refresh = () => setUnreadCount(getUnreadMessageCount());
-    refresh();
+    let isMounted = true;
 
-    const onStorage = () => refresh();
-    const onAccountUpdate = () => refresh();
-    window.addEventListener("storage", onStorage);
-    window.addEventListener(ACCOUNT_STORE_UPDATED_EVENT, onAccountUpdate);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener(ACCOUNT_STORE_UPDATED_EVENT, onAccountUpdate);
+    const refresh = async () => {
+      if (!token) {
+        if (isMounted) setUnreadCount(0);
+        return;
+      }
+
+      try {
+        const count = await fetchUnreadMessageCount(token);
+        if (isMounted) setUnreadCount(count);
+      } catch {
+        if (isMounted) setUnreadCount(0);
+      }
     };
-  }, []);
+
+    void refresh();
+
+    const unsubscribe = listenForAccountStoreUpdates(() => {
+      void refresh();
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [token]);
 
   return (
     <nav className="mb-5 flex flex-wrap gap-2 rounded-2xl border border-amber-100 bg-white/90 p-2">
