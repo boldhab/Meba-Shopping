@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/lib/hooks/useAuth";
 import {
-  getInboxMessages,
-  saveInboxMessages,
+  archiveMessage as archiveInboxMessage,
+  deleteMessage as deleteInboxMessage,
+  fetchInboxMessages,
+  markMessageRead,
+  replyToMessage,
   type InboxMessage,
-  type MessageCategory,
 } from "@/lib/api/account";
 
 const filters = ["All", "Unread", "Sales", "Support", "Promotions"] as const;
@@ -24,10 +27,43 @@ function formatTimestamp(value: string) {
 }
 
 export default function MessagesPage() {
-  const [messages, setMessages] = useState<InboxMessage[]>(() => getInboxMessages());
-  const [selectedId, setSelectedId] = useState(messages[0]?.id ?? "");
+  const { token } = useAuth();
+  const [messages, setMessages] = useState<InboxMessage[]>([]);
+  const [selectedId, setSelectedId] = useState("");
   const [filter, setFilter] = useState<MessageFilter>("All");
   const [reply, setReply] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadMessages = async () => {
+      if (!token) {
+        if (isMounted) {
+          setMessages([]);
+          setSelectedId("");
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const result = await fetchInboxMessages(token);
+        if (isMounted) {
+          setMessages(result.items);
+          setSelectedId(result.items[0]?.id ?? "");
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadMessages();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
 
   const unreadCount = messages.filter((msg) => !msg.read && !msg.archived).length;
 
@@ -42,41 +78,36 @@ export default function MessagesPage() {
 
   const selectedMessage = visibleMessages.find((msg) => msg.id === selectedId) ?? visibleMessages[0] ?? null;
 
-  const persistMessages = (nextMessages: InboxMessage[]) => {
+  useEffect(() => {
+    if (!selectedMessage && visibleMessages.length > 0) {
+      setSelectedId(visibleMessages[0].id);
+    }
+  }, [selectedMessage, visibleMessages]);
+
+  const updateMessage = (nextMessage: InboxMessage) => {
+    setMessages((prev) => prev.map((msg) => (msg.id === nextMessage.id ? nextMessage : msg)));
+  };
+
+  const deleteMessage = async (id: string) => {
+    if (!token) return;
+    const nextMessages = await deleteInboxMessage(token, id);
     setMessages(nextMessages);
-    saveInboxMessages(nextMessages);
-  };
-
-  const updateMessage = (id: string, updater: (msg: InboxMessage) => InboxMessage) => {
-    persistMessages(messages.map((msg) => (msg.id === id ? updater(msg) : msg)));
-  };
-
-  const deleteMessage = (id: string) => {
-    persistMessages(messages.filter((msg) => msg.id !== id));
     if (selectedId === id) setSelectedId("");
   };
 
-  const archiveMessage = (id: string) => {
-    updateMessage(id, (msg) => ({ ...msg, archived: true }));
+  const archiveMessage = async (id: string) => {
+    if (!token) return;
+    const next = await archiveInboxMessage(token, id);
+    updateMessage(next);
     if (selectedId === id) setSelectedId("");
   };
 
-  const sendReply = () => {
+  const sendReply = async () => {
     if (!selectedMessage || reply.trim().length === 0) return;
+    if (!token) return;
 
-    const nextMessages = messages.map((msg) => {
-      if (msg.id !== selectedMessage.id) return msg;
-      return {
-        ...msg,
-        read: true,
-        replies: [
-          ...(msg.replies ?? []),
-          { body: reply.trim(), timestamp: new Date().toISOString() },
-        ],
-      };
-    });
-
-    persistMessages(nextMessages);
+    const next = await replyToMessage(token, selectedMessage.id, reply.trim());
+    updateMessage(next);
     setReply("");
     window.alert(`Reply sent to ${selectedMessage.sender}`);
   };
@@ -110,7 +141,9 @@ export default function MessagesPage() {
         <aside className="rounded-2xl border border-slate-200 bg-white p-3">
           <h2 className="mb-2 text-sm font-semibold text-slate-700">Inbox</h2>
           <div className="space-y-2">
-            {visibleMessages.length === 0 ? (
+            {isLoading ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Loading messages...</div>
+            ) : visibleMessages.length === 0 ? (
               <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-500">No messages in this filter.</p>
             ) : (
               visibleMessages.map((msg) => (
@@ -118,7 +151,9 @@ export default function MessagesPage() {
                   key={msg.id}
                   onClick={() => {
                     setSelectedId(msg.id);
-                    if (!msg.read) updateMessage(msg.id, (next) => ({ ...next, read: true }));
+                      if (!msg.read && token) {
+                        void markMessageRead(token, msg.id, true).then(updateMessage);
+                      }
                   }}
                   className={`w-full rounded-xl border p-3 text-left ${selectedMessage?.id === msg.id ? "border-orange-300 bg-orange-50" : "border-slate-100 bg-white hover:bg-slate-50"}`}
                 >
@@ -182,14 +217,17 @@ export default function MessagesPage() {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
-                <button onClick={() => deleteMessage(selectedMessage.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50">
+                <button onClick={() => void deleteMessage(selectedMessage.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50">
                   Delete
                 </button>
-                <button onClick={() => archiveMessage(selectedMessage.id)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                <button onClick={() => void archiveMessage(selectedMessage.id)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                   Archive
                 </button>
                 <button
-                  onClick={() => updateMessage(selectedMessage.id, (msg) => ({ ...msg, read: !msg.read }))}
+                  onClick={() => {
+                    if (!token) return;
+                    void markMessageRead(token, selectedMessage.id, !selectedMessage.read).then(updateMessage);
+                  }}
                   className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Mark as {selectedMessage.read ? "unread" : "read"}
