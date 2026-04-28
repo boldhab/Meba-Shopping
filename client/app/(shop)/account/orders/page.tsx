@@ -1,14 +1,13 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { addCartItem } from "@/lib/api/cart";
 import {
-  getAccountOrders,
-  moveWishlistItemToCart,
-  saveAccountStore,
-  updateAccountOrder,
+  cancelAccountOrder,
+  fetchAccountOrders,
+  returnAccountOrder,
   type AccountOrder,
 } from "@/lib/api/account";
 
@@ -20,11 +19,39 @@ function money(value: number) {
 
 export default function OrdersPage() {
   const { token } = useAuth();
-  const [orders, setOrders] = useState<AccountOrder[]>(() => getAccountOrders());
+  const [orders, setOrders] = useState<AccountOrder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatusFilter>("All");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadOrders = async () => {
+      if (!token) {
+        if (isMounted) {
+          setOrders([]);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const result = await fetchAccountOrders(token);
+        if (isMounted) setOrders(result.items);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadOrders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -51,24 +78,15 @@ export default function OrdersPage() {
     setOrders((prev) => prev.map((order) => (order.id === nextOrder.id ? nextOrder : order)));
   };
 
-  const cancelOrder = (orderId: string) => {
-    const next = updateAccountOrder(orderId, (order) => ({
-      ...order,
-      orderStatus: "Canceled",
-      paymentStatus: order.paymentStatus === "Paid" ? "Refunded" : order.paymentStatus,
-      canCancel: false,
-      canReturn: false,
-    }));
+  const cancelOrder = async (orderId: string) => {
+    if (!token) return;
+    const next = await cancelAccountOrder(token, orderId);
     syncOrder(next);
   };
 
-  const returnOrder = (orderId: string) => {
-    const next = updateAccountOrder(orderId, (order) => ({
-      ...order,
-      orderStatus: "Returned",
-      canCancel: false,
-      canReturn: false,
-    }));
+  const returnOrder = async (orderId: string) => {
+    if (!token) return;
+    const next = await returnAccountOrder(token, orderId);
     syncOrder(next);
   };
 
@@ -137,7 +155,9 @@ export default function OrdersPage() {
         </div>
       </header>
 
-      {filteredOrders.length === 0 ? (
+      {isLoading ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Loading orders...</div>
+      ) : filteredOrders.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">No orders match your filters.</div>
       ) : (
         filteredOrders.map((order) => (
@@ -198,11 +218,11 @@ export default function OrdersPage() {
                 Download invoice (PDF)
               </button>
 
-              <button disabled={!order.canCancel} onClick={() => cancelOrder(order.id)} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${order.canCancel ? "bg-red-500 text-white hover:bg-red-600" : "cursor-not-allowed bg-red-100 text-red-300"}`}>
+              <button disabled={!order.canCancel} onClick={() => void cancelOrder(order.id)} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${order.canCancel ? "bg-red-500 text-white hover:bg-red-600" : "cursor-not-allowed bg-red-100 text-red-300"}`}>
                 Cancel order
               </button>
 
-              <button disabled={!order.canReturn} onClick={() => returnOrder(order.id)} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${order.canReturn ? "bg-blue-500 text-white hover:bg-blue-600" : "cursor-not-allowed bg-blue-100 text-blue-300"}`}>
+              <button disabled={!order.canReturn} onClick={() => void returnOrder(order.id)} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${order.canReturn ? "bg-blue-500 text-white hover:bg-blue-600" : "cursor-not-allowed bg-blue-100 text-blue-300"}`}>
                 Return or exchange
               </button>
 
