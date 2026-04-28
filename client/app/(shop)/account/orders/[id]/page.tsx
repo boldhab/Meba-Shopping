@@ -1,10 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useState } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { addCartItem } from "@/lib/api/cart";
-import { getAccountOrder, updateAccountOrder, type AccountOrder } from "@/lib/api/account";
+import { cancelAccountOrder, fetchAccountOrder, returnAccountOrder, type AccountOrder } from "@/lib/api/account";
 
 function money(value: number) {
   return `${value.toLocaleString()} ETB`;
@@ -12,7 +12,37 @@ function money(value: number) {
 
 export default function OrderDetailPage({ params }: { params: { id: string } }) {
   const { token } = useAuth();
-  const [order, setOrder] = useState<AccountOrder | null>(() => getAccountOrder(params.id));
+  const [order, setOrder] = useState<AccountOrder | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadOrder = async () => {
+      if (!token) {
+        if (isMounted) {
+          setOrder(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const next = await fetchAccountOrder(token, params.id);
+        if (isMounted) setOrder(next);
+      } catch {
+        if (isMounted) setOrder(null);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadOrder();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [params.id, token]);
 
   const syncOrder = (nextOrder: AccountOrder | null) => {
     if (!nextOrder) return;
@@ -40,34 +70,33 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
     window.alert(`Added items from ${order.id} to cart.`);
   };
 
-  const cancelOrder = () => {
+  const cancelOrder = async () => {
     if (!order) return;
-    const next = updateAccountOrder(order.id, (current) => ({
-      ...current,
-      orderStatus: "Canceled",
-      paymentStatus: current.paymentStatus === "Paid" ? "Refunded" : current.paymentStatus,
-      canCancel: false,
-      canReturn: false,
-    }));
+    if (!token) return;
+    const next = await cancelAccountOrder(token, order.id);
     syncOrder(next);
   };
 
-  const returnOrder = () => {
+  const returnOrder = async () => {
     if (!order) return;
-    const next = updateAccountOrder(order.id, (current) => ({
-      ...current,
-      orderStatus: "Returned",
-      canCancel: false,
-      canReturn: false,
-    }));
+    if (!token) return;
+    const next = await returnAccountOrder(token, order.id);
     syncOrder(next);
   };
+
+  if (isLoading) {
+    return (
+      <section className="page-stack rounded-2xl border border-slate-200 bg-white p-5">
+        <h1 className="text-2xl font-bold text-slate-900">Loading order...</h1>
+      </section>
+    );
+  }
 
   if (!order) {
     return (
       <section className="page-stack rounded-2xl border border-slate-200 bg-white p-5">
         <h1 className="text-2xl font-bold text-slate-900">Order not found</h1>
-        <p className="text-sm text-slate-600">This order does not exist in your local account data yet.</p>
+        <p className="text-sm text-slate-600">This order does not exist in your account data yet.</p>
         <Link href="/account/orders" className="text-sm font-semibold text-orange-600 hover:text-orange-700">
           Back to My Orders
         </Link>
@@ -126,10 +155,10 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
             Track shipment
           </a>
           <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Download invoice (PDF)</button>
-          <button disabled={!order.canCancel} onClick={cancelOrder} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${order.canCancel ? "bg-red-500 text-white hover:bg-red-600" : "cursor-not-allowed bg-red-100 text-red-300"}`}>
+          <button disabled={!order.canCancel} onClick={() => void cancelOrder()} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${order.canCancel ? "bg-red-500 text-white hover:bg-red-600" : "cursor-not-allowed bg-red-100 text-red-300"}`}>
             Cancel order
           </button>
-          <button disabled={!order.canReturn} onClick={returnOrder} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${order.canReturn ? "bg-blue-500 text-white hover:bg-blue-600" : "cursor-not-allowed bg-blue-100 text-blue-300"}`}>
+          <button disabled={!order.canReturn} onClick={() => void returnOrder()} className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${order.canReturn ? "bg-blue-500 text-white hover:bg-blue-600" : "cursor-not-allowed bg-blue-100 text-blue-300"}`}>
             Return or exchange
           </button>
           <button onClick={buyAgain} className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-600">
