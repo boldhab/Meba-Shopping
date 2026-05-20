@@ -271,8 +271,6 @@ async function writeRoot(root: StoreRoot) {
 async function getUserStore(userId: string) {
   const root = await readRoot();
   const store = root.users[userId] ?? clone(defaultStore());
-  root.users[userId] = store;
-  await writeRoot(root);
   return { root, store };
 }
 

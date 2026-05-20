@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+﻿import dotenv from "dotenv";
 import { z } from "zod";
 
 dotenv.config();
@@ -24,9 +24,9 @@ const envSchema = z.object({
   SMTP_SECURE: z.stringbool().default(false),
   SMTP_USER: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   SMTP_PASS: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
-  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
-  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
-  GOOGLE_REDIRECT_URI: z.url().optional(),
+  GOOGLE_CLIENT_ID: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  GOOGLE_CLIENT_SECRET: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  GOOGLE_REDIRECT_URI: z.preprocess(emptyToUndefined, z.union([z.string().url(), z.literal("")]).optional()),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(8).max(15).default(10)

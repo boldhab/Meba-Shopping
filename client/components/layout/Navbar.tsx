@@ -4,6 +4,10 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  fetchUnreadMessageCount,
+  listenForAccountStoreUpdates,
+} from "@/lib/api/account";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useCart } from "@/lib/hooks/useCart";
 import { AdminNavbar } from "./AdminNavbar";
@@ -54,7 +58,7 @@ const dropdownVariants = {
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated, logout, token, user } = useAuth();
   const { totalItems: cartCount } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
@@ -63,6 +67,7 @@ export function Navbar() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const categoriesRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   let mouseLeaveTimeout: NodeJS.Timeout;
@@ -101,6 +106,35 @@ export function Navbar() {
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const refreshUnreadCount = async () => {
+      if (!token) {
+        if (isMounted) setUnreadCount(0);
+        return;
+      }
+
+      try {
+        const count = await fetchUnreadMessageCount(token);
+        if (isMounted) setUnreadCount(count);
+      } catch {
+        if (isMounted) setUnreadCount(0);
+      }
+    };
+
+    void refreshUnreadCount();
+
+    const unsubscribe = listenForAccountStoreUpdates(() => {
+      void refreshUnreadCount();
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [token]);
+
   // Simplified nav links - remove redundancy
   const navLinks = [
     { href: "/", label: "Home" },
@@ -116,9 +150,11 @@ export function Navbar() {
 
   // Simplified account menu - most important items only
   const accountMenuItems = [
+    { href: "/account", label: "Dashboard", icon: Grid3X3, badge: null },
     { href: "/account/orders", label: "My Orders", icon: Package, badge: null },
     { href: "/account/wishlist", label: "Wishlist", icon: Heart, badge: null },
-    { href: "/account/messages", label: "Messages", icon: Mail, badge: null },
+    { href: "/account/messages", label: "Messages", icon: Mail, badge: unreadCount },
+    { href: "/account/settings", label: "Settings", icon: User, badge: null },
   ];
 
   const isActive = (path: string) => {
@@ -309,6 +345,11 @@ export function Navbar() {
                             >
                               <item.icon className="h-4 w-4" />
                               {item.label}
+                              {typeof item.badge === "number" && item.badge > 0 ? (
+                                <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-orange-500 px-1.5 text-xs font-semibold text-white">
+                                  {item.badge}
+                                </span>
+                              ) : null}
                             </Link>
                           ))}
                           <div className="border-t border-slate-100 mt-1 pt-1">
@@ -497,6 +538,12 @@ export function Navbar() {
                     </Link>
                     <Link href="/account/wishlist" className="block rounded-lg border border-slate-200 p-3 text-center text-sm">
                       Wishlist
+                    </Link>
+                    <Link href="/account/messages" className="block rounded-lg border border-slate-200 p-3 text-center text-sm">
+                      Messages{unreadCount > 0 ? ` (${unreadCount})` : ""}
+                    </Link>
+                    <Link href="/account/settings" className="block rounded-lg border border-slate-200 p-3 text-center text-sm">
+                      Settings
                     </Link>
                     <button
                       onClick={handleLogout}

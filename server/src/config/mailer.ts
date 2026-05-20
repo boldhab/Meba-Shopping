@@ -3,12 +3,20 @@ import { env } from "./env";
 
 function ensureSmtpConfiguration() {
   if (!env.smtpHost || !env.smtpPort || !env.smtpUser || !env.smtpPass) {
-    throw new Error("SMTP is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER and SMTP_PASS.");
+    if (env.isProduction) {
+      throw new Error("SMTP is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER and SMTP_PASS.");
+    }
+
+    return false;
   }
+
+  return true;
 }
 
 function createTransporter() {
-  ensureSmtpConfiguration();
+  if (!ensureSmtpConfiguration()) {
+    return null;
+  }
 
   return nodemailer.createTransport({
     host: env.smtpHost,
@@ -27,24 +35,48 @@ export const mailer = {
   async sendVerificationCode(email: string, code: string, expiresInMinutes: number) {
     const transporter = createTransporter();
 
-    await transporter.sendMail({
-      from: env.mailFrom,
-      to: email,
-      subject: "Your Meba verification code",
-      text: `Your verification code is ${code}. It expires in ${expiresInMinutes} minutes.`,
-      html: `<p>Your verification code is <strong>${code}</strong>.</p><p>It expires in ${expiresInMinutes} minutes.</p>`
-    });
+    if (!transporter) {
+      return;
+    }
+
+    try {
+      await transporter.sendMail({
+        from: env.mailFrom,
+        to: email,
+        subject: "Your Meba verification code",
+        text: `Your verification code is ${code}. It expires in ${expiresInMinutes} minutes.`,
+        html: `<p>Your verification code is <strong>${code}</strong>.</p><p>It expires in ${expiresInMinutes} minutes.</p>`
+      });
+    } catch (error) {
+      if (env.isProduction) {
+        throw error;
+      }
+
+      console.warn("Verification email delivery failed in development; continuing with dev code.", error);
+    }
   },
 
   async sendPasswordResetCode(email: string, code: string, expiresInMinutes: number) {
     const transporter = createTransporter();
 
-    await transporter.sendMail({
-      from: env.mailFrom,
-      to: email,
-      subject: "Reset your Meba password",
-      text: `Your password reset code is ${code}. It expires in ${expiresInMinutes} minutes. If you did not request this, you can safely ignore this email.`,
-      html: `<p>Your password reset code is <strong>${code}</strong>.</p><p>It expires in ${expiresInMinutes} minutes.</p><p>If you did not request this, you can safely ignore this email.</p>`
-    });
+    if (!transporter) {
+      return;
+    }
+
+    try {
+      await transporter.sendMail({
+        from: env.mailFrom,
+        to: email,
+        subject: "Reset your Meba password",
+        text: `Your password reset code is ${code}. It expires in ${expiresInMinutes} minutes. If you did not request this, you can safely ignore this email.`,
+        html: `<p>Your password reset code is <strong>${code}</strong>.</p><p>It expires in ${expiresInMinutes} minutes.</p><p>If you did not request this, you can safely ignore this email.</p>`
+      });
+    } catch (error) {
+      if (env.isProduction) {
+        throw error;
+      }
+
+      console.warn("Password reset email delivery failed in development; continuing with dev code.", error);
+    }
   }
 };
