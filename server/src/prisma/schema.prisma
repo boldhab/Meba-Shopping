@@ -11,6 +11,19 @@ enum Role {
   ADMIN
 }
 
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum MessageCategory {
+  SALES
+  SUPPORT
+  PROMOTIONS
+}
+
 enum OrderStatus {
   PENDING
   PAID
@@ -18,6 +31,7 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+  RETURNED
 }
 
 enum DealType {
@@ -41,18 +55,25 @@ enum ReviewStatus {
 }
 
 model User {
-  id           String    @id @default(cuid())
+  id           String          @id @default(cuid())
   name         String?
-  email        String    @unique
+  email        String          @unique
   passwordHash String
-  role         Role      @default(CUSTOMER)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  phone        String?
+  dob          DateTime?
+  gender       String?
+  role         Role            @default(CUSTOMER)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
   orders       Order[]
   reviews      Review[]
   cart         Cart?
   questions    Question[]
   answers      Answer[]
+  addresses    Address[]
+  preferences  UserPreference?
+  wishlist     WishlistItem[]
+  messages     InboxMessage[]
 }
 
 model Category {
@@ -65,33 +86,35 @@ model Category {
 }
 
 model Product {
-  id                String        @id @default(cuid())
+  id                String             @id @default(cuid())
   name              String
-  slug              String        @unique
+  slug              String             @unique
   imageUrl          String?
   description       String?
-  price             Decimal       @db.Decimal(10, 2)
-  stock             Int           @default(0)
-  status            ProductStatus @default(DRAFT)
+  price             Decimal            @db.Decimal(10, 2)
+  stock             Int                @default(0)
+  status            ProductStatus      @default(DRAFT)
   dealType          DealType?
-  isDealActive      Boolean       @default(false)
+  isDealActive      Boolean            @default(false)
   dealStartAt       DateTime?
   dealEndAt         DateTime?
-  isFeatured        Boolean       @default(false)
-  allowBackorder    Boolean       @default(false)
-  lowStockThreshold Int           @default(10)
+  isFeatured        Boolean            @default(false)
+  allowBackorder    Boolean            @default(false)
+  lowStockThreshold Int                @default(10)
   seoTitle          String?
   seoDescription    String?
   seoKeywords       String?
-  attributes        Json?         @default("{}")
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  attributes        Json?              @default("{}")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   categoryId        String
-  category          Category      @relation(fields: [categoryId], references: [id])
+  category          Category           @relation(fields: [categoryId], references: [id])
   orderItems        OrderItem[]
   reviews           Review[]
   cartItems         CartItem[]
   questions         Question[]
+  wishlistItems     WishlistItem[]
+  stockReservations StockReservation[]
 }
 
 model Cart {
@@ -122,29 +145,31 @@ model CartItem {
 }
 
 model Order {
-  id              String      @id @default(cuid())
-  status          OrderStatus @default(PENDING)
-  totalAmount     Decimal     @db.Decimal(10, 2)
+  id              String        @id @default(cuid())
+  status          OrderStatus   @default(PENDING)
+  paymentStatus   PaymentStatus @default(UNPAID)
+  stripePaymentId String?
+  totalAmount     Decimal       @db.Decimal(10, 2)
   shippingName    String?
   shippingAddress String?
   shippingCity    String?
   shippingZip     String?
   shippingCountry String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   userId          String
-  user            User        @relation(fields: [userId], references: [id])
+  user            User          @relation(fields: [userId], references: [id])
   items           OrderItem[]
 }
 
 model OrderItem {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   quantity  Int
-  unitPrice Decimal  @db.Decimal(10, 2)
+  unitPrice Decimal @db.Decimal(10, 2)
   orderId   String
   productId String
-  order     Order    @relation(fields: [orderId], references: [id])
-  product   Product  @relation(fields: [productId], references: [id])
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 }
 
 model Review {
@@ -195,12 +220,75 @@ model Coupon {
 
 model CartRuleConfig {
   id                    String   @id @default("default")
-  minCartValue          Decimal  @db.Decimal(10, 2) @default(0)
+  minCartValue          Decimal  @default(0) @db.Decimal(10, 2)
   maxQuantityPerProduct Int      @default(25)
-  freeShippingThreshold Decimal  @db.Decimal(10, 2) @default(50)
-  taxRatePercent        Decimal  @db.Decimal(5, 2) @default(0)
+  freeShippingThreshold Decimal  @default(50) @db.Decimal(10, 2)
+  taxRatePercent        Decimal  @default(0) @db.Decimal(5, 2)
   abandonedHours        Int      @default(24)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   updatedById           String?
+}
+
+model Address {
+  id        String  @id @default(cuid())
+  label     String
+  line1     String
+  city      String
+  isDefault Boolean @default(false)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserPreference {
+  id                  String  @id @default(cuid())
+  emailOrderUpdates   Boolean @default(true)
+  emailWishlistAlerts Boolean @default(true)
+  emailPromotions     Boolean @default(false)
+  smsAlerts           Boolean @default(false)
+  pushNotifications   Boolean @default(true)
+  newsletter          Boolean @default(true)
+  currency            String  @default("ETB")
+  language            String  @default("English")
+  userId              String  @unique
+  user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model InboxMessage {
+  id        String          @id @default(cuid())
+  sender    String
+  subject   String
+  body      String
+  read      Boolean         @default(false)
+  archived  Boolean         @default(false)
+  category  MessageCategory @default(SUPPORT)
+  replies   Json?           @default("[]")
+  createdAt DateTime        @default(now())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StockReservation {
+  id        String    @id @default(cuid())
+  productId String
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderId   String?
+  quantity  Int
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([productId])
+  @@index([orderId])
 }

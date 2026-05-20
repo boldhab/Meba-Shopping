@@ -54,7 +54,7 @@ export const orderService = {
         },
       });
 
-      // Deduct stock for each item
+      // Create stock reservations for each item and decrement product stock
       for (const item of quote.items) {
         await tx.product.update({
           where: { id: item.productId },
@@ -62,6 +62,14 @@ export const orderService = {
             stock: {
               decrement: item.quantity,
             },
+          },
+        });
+
+        await tx.stockReservation.create({
+          data: {
+            productId: item.productId,
+            orderId: order.id,
+            quantity: item.quantity,
           },
         });
       }

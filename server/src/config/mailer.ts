@@ -78,5 +78,23 @@ export const mailer = {
 
       console.warn("Password reset email delivery failed in development; continuing with dev code.", error);
     }
+  },
+
+  async sendEmail(options: { to: string; subject: string; text: string; html: string }) {
+    const transporter = createTransporter();
+    if (!transporter) return;
+
+    try {
+      await transporter.sendMail({
+        from: env.mailFrom,
+        to: options.to,
+        subject: options.subject,
+        text: options.text,
+        html: options.html
+      });
+    } catch (error) {
+      if (env.isProduction) throw error;
+      console.warn("Email delivery failed in development.", error);
+    }
   }
 };

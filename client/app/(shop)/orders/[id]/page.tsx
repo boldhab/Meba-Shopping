@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getOrderById, type Order } from "@/lib/api/orders";
-import { useAuth } from "@/contexts/AuthContext";
 import { formatPrice } from "@/lib/utils/formatPrice";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 export default function OrderSuccessPage() {
   const params = useParams();
   const router = useRouter();
-  const { token, loading: authLoading } = useAuth();
+  const { token, isLoading: authLoading } = useAuth();
   
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);

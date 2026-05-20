@@ -133,7 +133,7 @@
           "subject": "Weekend sale starts now",
           "body": "Enjoy up to 25% discount on selected categories. Add products to your cart before midnight.",
           "timestamp": "2026-05-19T12:07:52.746Z",
-          "read": false,
+          "read": true,
           "archived": false,
           "category": "Promotions",
           "replies": []

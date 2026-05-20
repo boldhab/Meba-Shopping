@@ -13,10 +13,13 @@ export function createApp() {
   app.use(securityMiddleware);
   app.use(loggingMiddleware);
   app.use(rateLimitMiddleware);
+  
+  // Webhooks need raw body for signature verification, so they must come before express.json()
+  app.use("/webhooks", webhookRouter);
+
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use("/api/v1", apiV1Router);
-  app.use("/webhooks", webhookRouter);
 
   app.get("/api/v1/health", (_request, response) => {
     response.status(200).json({
