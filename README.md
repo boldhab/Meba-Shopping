@@ -8,7 +8,7 @@ Meba Supermarket is a full-stack e-commerce platform for online grocery ordering
 client/       Next.js frontend
 server/       Node.js + Express backend
 database/     PostgreSQL schema, migrations, and seeders
-docs/         Architecture, API, and workflow documentation
+docs/         Architecture, API, and workflow documentatio
 shared/       Shared types and constants
 scripts/      Project automation scripts
 ```
@@ -30,7 +30,7 @@ scripts/      Project automation scripts
 - `client` is the customer and admin frontend.
 - `server` exposes REST APIs and business logic.
 - `database` contains PostgreSQL-related assets.
-- `shared` is reserved for code shared between frontend and backend.
+
 
 ## Auto Git Sync
 
