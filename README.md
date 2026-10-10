@@ -25,14 +25,3 @@ scripts/      Project automation scripts
 - Admin dashboard
 - Analytics
 
-## Notes
-
-- `client` is the customer and admin frontend.
-- `server` exposes REST APIs and business logic.
-- `database` contains PostgreSQL-related assets.
-
-
-## Auto Git Sync
-
-- Start auto-sync: `npm run git:auto-sync`
-- Health check: `npm run git:auto-sync:health`
