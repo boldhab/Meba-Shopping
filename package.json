@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "npm run prisma:generate --workspace @meba/api",
     "dev:web": "npm run dev --workspace @meba/web",
     "dev:api": "npm run dev --workspace @meba/api",
     "build:web": "npm run build --workspace @meba/web",
