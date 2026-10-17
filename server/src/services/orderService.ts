@@ -70,6 +70,7 @@ export const orderService = {
             productId: item.productId,
             orderId: order.id,
             quantity: item.quantity,
+            expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes reservation window
           },
         });
       }

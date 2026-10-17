@@ -1,5 +1,6 @@
 import { prisma } from "../prisma/client";
 import { ApiError } from "../utils/apiError";
+import { inventoryService } from "./inventoryService";
 import type { OrderStatus, PaymentStatus, MessageCategory } from "@prisma/client";
 
 export const accountService = {
@@ -28,11 +29,19 @@ export const accountService = {
 
     const paymentStatus = order.paymentStatus === "PAID" ? "REFUNDED" : order.paymentStatus;
 
-    return prisma.order.update({
+    const updated = await prisma.order.update({
       where: { id: orderId },
       data: { status: "CANCELLED", paymentStatus },
       include: { items: { include: { product: true } } },
     });
+
+    try {
+      await inventoryService.releaseStockForOrder(orderId);
+    } catch (e) {
+      console.warn("Error releasing stock reservations on user cancel:", e);
+    }
+
+    return updated;
   },
 
   async returnOrder(userId: string, orderId: string) {
@@ -41,11 +50,19 @@ export const accountService = {
       throw new ApiError(400, "Can only return delivered orders.");
     }
 
-    return prisma.order.update({
+    const updated = await prisma.order.update({
       where: { id: orderId },
       data: { status: "RETURNED" },
       include: { items: { include: { product: true } } },
     });
+
+    try {
+      await inventoryService.releaseStockForOrder(orderId);
+    } catch (e) {
+      console.warn("Error releasing stock reservations on return order:", e);
+    }
+
+    return updated;
   },
 
   async getWishlist(userId: string) {

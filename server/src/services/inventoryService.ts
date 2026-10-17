@@ -57,6 +57,97 @@ export const inventoryService = {
     });
   },
 
+  async releaseStockForOrder(orderId: string) {
+    return prisma.$transaction(async (tx) => {
+      // 1. Check if active reservations exist for this order
+      const reservations = await tx.stockReservation.findMany({ where: { orderId } });
+
+      if (reservations.length > 0) {
+        for (const res of reservations) {
+          await tx.product.update({
+            where: { id: res.productId },
+            data: { stock: { increment: res.quantity } }
+          });
+        }
+        await tx.stockReservation.deleteMany({ where: { orderId } });
+        return { restoredCount: reservations.length, mode: "reservation" };
+      }
+
+      // 2. If reservations were already removed (e.g. order was paid and now cancelled/returned),
+      // restore stock directly from order items.
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        include: { items: true }
+      });
+
+      if (order && order.items.length > 0) {
+        for (const item of order.items) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { increment: item.quantity } }
+          });
+        }
+        return { restoredCount: order.items.length, mode: "orderItems" };
+      }
+
+      return { restoredCount: 0, mode: "none" };
+    });
+  },
+
+  async releaseExpiredReservations() {
+    const now = new Date();
+    const expiredReservations = await prisma.stockReservation.findMany({
+      where: {
+        expiresAt: { lte: now }
+      }
+    });
+
+    if (expiredReservations.length === 0) {
+      return { releasedCount: 0, cancelledOrdersCount: 0 };
+    }
+
+    let releasedCount = 0;
+    const affectedOrderIds = new Set<string>();
+
+    for (const reservation of expiredReservations) {
+      try {
+        await prisma.$transaction(async (tx) => {
+          await tx.product.update({
+            where: { id: reservation.productId },
+            data: { stock: { increment: reservation.quantity } }
+          });
+          await tx.stockReservation.delete({
+            where: { id: reservation.id }
+          });
+        });
+        releasedCount += reservation.quantity;
+        if (reservation.orderId) {
+          affectedOrderIds.add(reservation.orderId);
+        }
+      } catch (err) {
+        console.warn(`[InventoryService] Failed to release expired reservation ${reservation.id}:`, err);
+      }
+    }
+
+    let cancelledOrdersCount = 0;
+    for (const orderId of affectedOrderIds) {
+      try {
+        const order = await prisma.order.findUnique({ where: { id: orderId } });
+        if (order && order.status === "PENDING" && order.paymentStatus === "UNPAID") {
+          await prisma.order.update({
+            where: { id: orderId },
+            data: { status: "CANCELLED" }
+          });
+          cancelledOrdersCount += 1;
+        }
+      } catch (err) {
+        console.warn(`[InventoryService] Failed to cancel expired order ${orderId}:`, err);
+      }
+    }
+
+    return { releasedCount, cancelledOrdersCount };
+  },
+
   async deductStockForOrder(orderId: string) {
     // Called after payment succeeds. Remove reservations tied to order and keep stock as-is (already decremented at reserve).
     const reservations = await prisma.stockReservation.findMany({ where: { orderId } });
