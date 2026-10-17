@@ -6,6 +6,12 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@meba/shared": [
+        "../packages/shared/src/index.ts"
+      ],
+      "@meba/shared/*": [
+        "../packages/shared/src/*"
       ]
     },
     "plugins": [

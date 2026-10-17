@@ -4,8 +4,8 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/common/Button";
-import { Input } from "@/components/common/Input";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { requestPasswordReset, confirmPasswordReset } from "@/lib/api/auth";
 import { Mail, Shield, Lock, CheckCircle, AlertCircle, ArrowLeft, Eye, EyeOff } from "lucide-react";
 
