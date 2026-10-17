@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../prisma/client";
 import { normalizeUploadError } from "../middleware/uploadMiddleware";
 import { productService } from "../services/productService";
+import { inventoryService } from "../services/inventoryService";
 import { ApiError } from "../utils/apiError";
 import { uploadImage } from "../utils/uploadImage";
 import { ProductStatus, ReviewStatus } from "@prisma/client";
@@ -851,6 +852,14 @@ export const adminController = {
           },
         },
       });
+
+      if (payload.status === "CANCELLED") {
+        try {
+          await inventoryService.releaseStockForOrder(existingOrder.id);
+        } catch (e) {
+          console.warn("Error releasing stock on admin order cancellation:", e);
+        }
+      }
 
       response.json(serializeAdminOrder(updatedOrder));
     } catch (error) {

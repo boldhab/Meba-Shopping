@@ -74,16 +74,23 @@ export const paymentService = {
 
         await emailService.sendOrderConfirmation(order, order.user.email);
       }
-    } else if (event.type === "payment_intent.payment_failed") {
+    } else if (event.type === "payment_intent.payment_failed" || event.type === "payment_intent.canceled") {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
       const orderId = paymentIntent.metadata.orderId;
 
       if (orderId) {
         const order = await prisma.order.update({
           where: { id: orderId },
-          data: { paymentStatus: "FAILED" },
+          data: { paymentStatus: "FAILED", status: "CANCELLED" },
           include: { user: true }
         });
+
+        // Release stock reservations back to inventory on failure/cancellation
+        try {
+          await inventoryService.releaseStockForOrder(orderId);
+        } catch (e) {
+          console.warn("Error releasing stock reservations for failed/canceled order:", e);
+        }
         
         await emailService.sendPaymentFailed(order, order.user.email);
       }
