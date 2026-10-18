@@ -2,23 +2,43 @@ import type { NextFunction, Request, Response } from "express";
 import { verifyToken } from "../utils/generateToken";
 import { ApiError } from "../utils/apiError";
 
-export function authMiddleware(request: Request, _response: Response, next: NextFunction) {
+function extractToken(request: Request): string | null {
   const authorizationHeader = request.headers.authorization;
+  if (authorizationHeader?.startsWith("Bearer ")) {
+    return authorizationHeader.replace("Bearer ", "").trim();
+  }
 
-  if (!authorizationHeader?.startsWith("Bearer ")) {
+  const cookieHeader = request.headers.cookie;
+  if (cookieHeader) {
+    const cookies = Object.fromEntries(
+      cookieHeader.split(";").map((c) => {
+        const [key, ...v] = c.trim().split("=");
+        return [key, decodeURIComponent(v.join("="))];
+      })
+    );
+    if (cookies.token) {
+      return cookies.token.trim();
+    }
+  }
+
+  return null;
+}
+
+export function authMiddleware(request: Request, _response: Response, next: NextFunction) {
+  const token = extractToken(request);
+
+  if (!token) {
     next(new ApiError(401, "Authorization token is missing."));
     return;
   }
-
-  const token = authorizationHeader.replace("Bearer ", "").trim();
 
   try {
     const payload = verifyToken(token);
 
     request.user = {
-      id: payload.sub,
+      id: payload.sub || (payload as any).userId || (payload as any).id,
       email: payload.email,
-      role: payload.role
+      role: payload.role,
     };
 
     next();
@@ -26,17 +46,17 @@ export function authMiddleware(request: Request, _response: Response, next: Next
     next(new ApiError(401, "Invalid or expired authorization token."));
   }
 }
-export function optionalAuthMiddleware(request: Request, _response: Response, next: NextFunction) {
-  const authorizationHeader = request.headers.authorization;
 
-  if (authorizationHeader?.startsWith("Bearer ")) {
-    const token = authorizationHeader.replace("Bearer ", "").trim();
+export function optionalAuthMiddleware(request: Request, _response: Response, next: NextFunction) {
+  const token = extractToken(request);
+
+  if (token) {
     try {
       const payload = verifyToken(token);
       request.user = {
-        id: payload.sub,
+        id: payload.sub || (payload as any).userId || (payload as any).id,
         email: payload.email,
-        role: payload.role
+        role: payload.role,
       };
     } catch {
       // Ignore errors for optional auth
