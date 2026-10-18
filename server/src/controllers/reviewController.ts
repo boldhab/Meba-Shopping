@@ -3,8 +3,14 @@ import { reviewService } from "../services/reviewService";
 import { ApiError } from "../utils/apiError";
 
 export const reviewController = {
-  async list(_request: Request, response: Response) {
-    response.status(200).json({ resource: "reviews" });
+  async list(request: Request, response: Response, next: NextFunction) {
+    try {
+      const productId = typeof request.query.productId === "string" ? request.query.productId : undefined;
+      const reviews = await reviewService.getReviews(productId);
+      response.status(200).json({ reviews });
+    } catch (error) {
+      next(error);
+    }
   },
 
   async create(request: Request, response: Response, next: NextFunction) {
