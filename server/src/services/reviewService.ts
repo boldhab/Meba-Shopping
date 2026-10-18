@@ -12,4 +12,11 @@ export const reviewService = {
 
     return reviewRepository.create(input);
   },
+
+  async getReviews(productId?: string) {
+    if (productId) {
+      return reviewRepository.findByProductId(productId);
+    }
+    return reviewRepository.findAll();
+  },
 };
