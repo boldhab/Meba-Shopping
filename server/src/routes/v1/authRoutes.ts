@@ -20,3 +20,6 @@ authRoutes.get("/google/callback", authController.googleCallback);
 authRoutes.get("/me", authMiddleware, authController.me);
 authRoutes.post("/password-reset/request", validateRequest(requestPasswordResetValidator), authController.requestPasswordReset);
 authRoutes.post("/password-reset/confirm", validateRequest(confirmPasswordResetValidator), authController.confirmPasswordReset);
+authRoutes.post("/oauth/exchange", authController.exchangeOAuthCode);
+authRoutes.post("/change-password", authMiddleware, authController.changePassword);
+authRoutes.post("/logout", authController.logout);
