@@ -7,6 +7,31 @@ jest.mock("../../../repositories/userRepository", () => ({
   },
 }));
 
+const tokenStore = new Map<string, any>();
+jest.mock("../../../prisma/client", () => ({
+  prisma: {
+    authToken: {
+      upsert: jest.fn(async ({ create, update, where }: any) => {
+        const item = { ...create, ...update, id: "token-1" };
+        tokenStore.set(where.key, item);
+        return item;
+      }),
+      findFirst: jest.fn(async ({ where }: any) => {
+        return tokenStore.get(where.key) || null;
+      }),
+      deleteMany: jest.fn(async ({ where }: any) => {
+        if (where?.key) tokenStore.delete(where.key);
+        return { count: 1 };
+      }),
+      update: jest.fn(async ({ where, data }: any) => {
+        const item = tokenStore.get(where.id);
+        if (item) Object.assign(item, data);
+        return item;
+      }),
+    },
+  },
+}));
+
 jest.mock("../../../config/mailer", () => ({
   mailer: {
     sendVerificationCode: jest.fn().mockResolvedValue(undefined),
@@ -58,11 +83,11 @@ describe("authService unit tests", () => {
 
   it("registers a user after a valid verification request", async () => {
     mockUserRepository.findByEmail.mockResolvedValueOnce(null as any).mockResolvedValueOnce(null as any);
-    mockUserRepository.create.mockResolvedValue({ id: "user-1", email: "new-user@example.com", role: "CUSTOMER" } as any);
+    mockUserRepository.create.mockResolvedValue({ id: "user-1", email: "registered-user@example.com", role: "CUSTOMER" } as any);
 
-    const verification = await authService.requestEmailVerification({ email: "new-user@example.com" });
+    const verification = await authService.requestEmailVerification({ email: "registered-user@example.com" });
     const result = await authService.register({
-      email: "new-user@example.com",
+      email: "registered-user@example.com",
       password: "password123",
       name: "New User",
       verificationCode: verification.devVerificationCode!,
@@ -70,5 +95,55 @@ describe("authService unit tests", () => {
 
     expect(result.token).toBe("mock-token");
     expect(mockUserRepository.create).toHaveBeenCalled();
+  });
+
+  describe("changePassword", () => {
+    it("rejects when current password is missing", async () => {
+      await expect(
+        authService.changePassword("user-1", { currentPassword: "", newPassword: "newpassword123" })
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: "Current password is required.",
+      });
+    });
+
+    it("rejects when new password is too short", async () => {
+      await expect(
+        authService.changePassword("user-1", { currentPassword: "oldpassword", newPassword: "short" })
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: "New password must be at least 8 characters long.",
+      });
+    });
+
+    it("rejects when current password does not match", async () => {
+      mockUserRepository.findById.mockResolvedValue({
+        id: "user-1",
+        passwordHash: "hashed:correct-old-password",
+      } as any);
+
+      await expect(
+        authService.changePassword("user-1", { currentPassword: "wrong-password", newPassword: "newpassword123" })
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: "Incorrect current password.",
+      });
+    });
+
+    it("successfully updates password when credentials are valid", async () => {
+      mockUserRepository.findById.mockResolvedValue({
+        id: "user-1",
+        passwordHash: "hashed:correct-old-password",
+      } as any);
+      mockUserRepository.updatePassword.mockResolvedValue({} as any);
+
+      const result = await authService.changePassword("user-1", {
+        currentPassword: "correct-old-password",
+        newPassword: "newpassword123",
+      });
+
+      expect(result.message).toBe("Password updated successfully.");
+      expect(mockUserRepository.updatePassword).toHaveBeenCalledWith("user-1", "hashed:newpassword123");
+    });
   });
 });

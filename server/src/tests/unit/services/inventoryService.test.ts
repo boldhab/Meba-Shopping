@@ -75,6 +75,20 @@ describe("inventoryService", () => {
       });
       expect(result).toEqual({ restoredCount: 2, mode: "orderItems" });
     });
+
+    it("does not duplicate stock release if order is already cancelled", async () => {
+      (prisma.stockReservation.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.order.findUnique as jest.Mock).mockResolvedValue({
+        id: "order-123",
+        status: "CANCELLED",
+        items: [{ productId: "prod-1", quantity: 3 }],
+      });
+
+      const result = await inventoryService.releaseStockForOrder("order-123");
+
+      expect(prisma.product.update).not.toHaveBeenCalled();
+      expect(result).toEqual({ restoredCount: 0, mode: "already_cancelled" });
+    });
   });
 
   describe("releaseExpiredReservations", () => {
@@ -107,6 +121,27 @@ describe("inventoryService", () => {
         data: { status: "CANCELLED" },
       });
       expect(result).toEqual({ releasedCount: 2, cancelledOrdersCount: 1 });
+    });
+
+    it("does not cancel pending unpaid orders if paymentMethod is COD", async () => {
+      const mockExpired = [
+        { id: "res-exp-cod", productId: "prod-1", quantity: 1, orderId: "order-cod-1" },
+      ];
+
+      (prisma.stockReservation.findMany as jest.Mock).mockResolvedValue(mockExpired);
+      (prisma.product.update as jest.Mock).mockResolvedValue({});
+      (prisma.stockReservation.delete as jest.Mock).mockResolvedValue({});
+      (prisma.order.findUnique as jest.Mock).mockResolvedValue({
+        id: "order-cod-1",
+        status: "PENDING",
+        paymentStatus: "UNPAID",
+        paymentMethod: "COD",
+      });
+
+      const result = await inventoryService.releaseExpiredReservations();
+
+      expect(prisma.order.update).not.toHaveBeenCalled();
+      expect(result).toEqual({ releasedCount: 1, cancelledOrdersCount: 0 });
     });
   });
 });

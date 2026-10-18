@@ -15,10 +15,15 @@ describe("Auth Integration Tests", () => {
   });
 
   it("should register a new user successfully", async () => {
+    const vRes = await request(app).post("/api/v1/auth/email/request-verification").send({
+      email: "testauth1@example.com"
+    });
+
     const res = await request(app).post("/api/v1/auth/register").send({
       email: "testauth1@example.com",
       password: "password123",
-      name: "Test Auth"
+      name: "Test Auth",
+      verificationCode: vRes.body.devVerificationCode
     });
 
     expect(res.status).toBe(201);
