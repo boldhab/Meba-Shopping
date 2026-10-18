@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useEffect, useMemo, useState } from "react";
-import { getCurrentUser, login as loginRequest, register as registerRequest, type AuthUser } from "@/lib/api/auth";
+import { getCurrentUser, login as loginRequest, register as registerRequest, exchangeOAuthCode, logout as serverLogout, type AuthUser } from "@/lib/api/auth";
 
 type LoginInput = {
 	email: string;
@@ -37,9 +37,24 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
 
 	useEffect(() => {
 		const url = new URL(window.location.href);
+		const codeFromQuery = url.searchParams.get("code");
 		const tokenFromQuery = url.searchParams.get("token");
 
-		if (tokenFromQuery) {
+		if (codeFromQuery) {
+			url.searchParams.delete("code");
+			url.searchParams.delete("provider");
+			window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+
+			void exchangeOAuthCode(codeFromQuery)
+				.then((auth) => {
+					localStorage.setItem(TOKEN_STORAGE_KEY, auth.token);
+					setToken(auth.token);
+					setUser(auth.user);
+				})
+				.catch((err) => {
+					console.error("OAuth code exchange error:", err);
+				});
+		} else if (tokenFromQuery) {
 			localStorage.setItem(TOKEN_STORAGE_KEY, tokenFromQuery);
 			setToken(tokenFromQuery);
 			url.searchParams.delete("token");
@@ -128,6 +143,7 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
 	}, []);
 
 	const logout = useCallback(() => {
+		void serverLogout().catch(() => {});
 		setUser(null);
 		setToken(null);
 		localStorage.removeItem(TOKEN_STORAGE_KEY);
