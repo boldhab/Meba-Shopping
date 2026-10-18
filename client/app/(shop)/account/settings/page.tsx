@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { changePassword } from "@/lib/api/auth";
 import {
   fetchAccountSettings,
   saveAccountSettings,
@@ -9,29 +11,59 @@ import {
   type AccountPreferences,
   type AccountProfile,
 } from "@/lib/api/account";
+import {
+  Settings,
+  User,
+  MapPin,
+  Lock,
+  Bell,
+  Globe,
+  Check,
+  Plus,
+  Trash2,
+  Shield,
+  Save,
+  ArrowRight,
+} from "lucide-react";
 
 export default function SettingsPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [saveNotice, setSaveNotice] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
+
   const [addresses, setAddresses] = useState<AccountAddress[]>([]);
   const [profile, setProfile] = useState<AccountProfile>({
     fullName: "",
     email: "",
     phone: "",
     dob: "",
-    gender: "",
+    gender: "Prefer not to say",
   });
   const [prefs, setPrefs] = useState<AccountPreferences>({
-    emailOrderUpdates: false,
-    emailWishlistAlerts: false,
+    emailOrderUpdates: true,
+    emailWishlistAlerts: true,
     emailPromotions: false,
     smsAlerts: false,
-    pushNotifications: false,
-    newsletter: false,
+    pushNotifications: true,
+    newsletter: true,
     currency: "ETB",
     language: "English",
   });
+
+  // Password change state
+  const [passwordState, setPasswordState] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
+
+  // Address add state
+  const [showAddAddress, setShowAddAddress] = useState(false);
+  const [newLabel, setNewLabel] = useState("Home");
+  const [newLine1, setNewLine1] = useState("");
+  const [newCity, setNewCity] = useState("Addis Ababa");
 
   useEffect(() => {
     let isMounted = true;
@@ -45,9 +77,24 @@ export default function SettingsPage() {
       try {
         const currentSettings = await fetchAccountSettings(token);
         if (isMounted) {
-          setAddresses(currentSettings.addresses);
-          setProfile(currentSettings.profile);
-          setPrefs(currentSettings.preferences);
+          setAddresses(currentSettings.addresses || []);
+          setProfile({
+            fullName: currentSettings.profile?.fullName || user?.name || "",
+            email: currentSettings.profile?.email || user?.email || "",
+            phone: currentSettings.profile?.phone || "",
+            dob: currentSettings.profile?.dob || "",
+            gender: currentSettings.profile?.gender || "Prefer not to say",
+          });
+          setPrefs(currentSettings.preferences || prefs);
+        }
+      } catch {
+        // Fallback to user auth data if settings endpoint is fresh
+        if (user && isMounted) {
+          setProfile((p) => ({
+            ...p,
+            fullName: user.name || "",
+            email: user.email || "",
+          }));
         }
       } finally {
         if (isMounted) setIsLoading(false);
@@ -59,162 +106,409 @@ export default function SettingsPage() {
     return () => {
       isMounted = false;
     };
-  }, [token]);
+  }, [token, user]);
 
   const save = async (message: string) => {
     if (!token) return;
+    setIsSaving(true);
+    setSaveNotice(null);
 
-    const next = await saveAccountSettings(token, { profile, addresses, preferences: prefs });
-    setAddresses(next.addresses);
-    setProfile(next.profile);
-    setPrefs(next.preferences);
-    setSaveNotice(message);
-    window.setTimeout(() => setSaveNotice(""), 1800);
+    try {
+      const next = await saveAccountSettings(token, { profile, addresses, preferences: prefs });
+      setAddresses(next.addresses || []);
+      setProfile(next.profile);
+      setPrefs(next.preferences);
+      setSaveNotice(message);
+      setTimeout(() => setSaveNotice(null), 3000);
+    } catch {
+      setSaveNotice("Failed to save changes. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const addAddress = () => {
-    setAddresses((prev) => [
-      ...prev,
-      {
-        id: `a${Date.now()}`,
-        label: "New",
-        line1: "",
-        city: "",
-        isDefault: false,
-      },
-    ]);
+  const handleAddAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !newLine1.trim()) return;
+
+    const newAddr: AccountAddress = {
+      id: `addr-${Date.now()}`,
+      label: newLabel,
+      line1: newLine1.trim(),
+      city: newCity.trim(),
+      isDefault: addresses.length === 0,
+    };
+
+    const nextAddresses = [...addresses, newAddr];
+    setAddresses(nextAddresses);
+    setNewLine1("");
+    setShowAddAddress(false);
+
+    await saveAccountSettings(token, {
+      profile,
+      addresses: nextAddresses,
+      preferences: prefs,
+    });
+    setSaveNotice("New address saved.");
+    setTimeout(() => setSaveNotice(null), 3000);
   };
 
-  const deleteAddress = (id: string) => {
-    const ok = window.confirm("Delete this address?");
+  const deleteAddress = async (id: string) => {
+    if (!token) return;
+    const ok = window.confirm("Are you sure you want to remove this address?");
     if (!ok) return;
-    setAddresses((prev) => prev.filter((addr) => addr.id !== id));
+
+    const nextAddresses = addresses.filter((addr) => addr.id !== id);
+    setAddresses(nextAddresses);
+
+    await saveAccountSettings(token, {
+      profile,
+      addresses: nextAddresses,
+      preferences: prefs,
+    });
   };
 
-  const setDefault = (id: string) => {
-    setAddresses((prev) => prev.map((addr) => ({ ...addr, isDefault: addr.id === id })));
+  const setDefault = async (id: string) => {
+    if (!token) return;
+    const nextAddresses = addresses.map((addr) => ({ ...addr, isDefault: addr.id === id }));
+    setAddresses(nextAddresses);
+
+    await saveAccountSettings(token, {
+      profile,
+      addresses: nextAddresses,
+      preferences: prefs,
+    });
   };
+
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) {
+      setPasswordNotice("You must be logged in to change your password.");
+      return;
+    }
+    if (!passwordState.oldPassword) {
+      setPasswordNotice("Please enter your current password.");
+      return;
+    }
+    if (passwordState.newPassword.length < 8) {
+      setPasswordNotice("Password must be at least 8 characters long.");
+      return;
+    }
+    if (passwordState.newPassword !== passwordState.confirmPassword) {
+      setPasswordNotice("New passwords do not match.");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const res = await changePassword(token, {
+        currentPassword: passwordState.oldPassword,
+        newPassword: passwordState.newPassword,
+      });
+      setPasswordNotice(res.message || "Password updated successfully.");
+      setPasswordState({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      setTimeout(() => setPasswordNotice(null), 4000);
+    } catch (err: any) {
+      setPasswordNotice(err.message || "Failed to update password. Please check your current password.");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
+        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-slate-500">Loading your settings...</p>
+      </div>
+    );
+  }
 
   return (
-    <section className="page-stack gap-4">
-      <header className="rounded-2xl border border-amber-100 bg-white p-4">
-        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
-        <p className="mt-1 text-sm text-slate-600">Manage profile, addresses, security, notifications, and account preferences.</p>
-        {saveNotice ? <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">{saveNotice}</p> : null}
-      </header>
-
-      {isLoading ? (
-        <article className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">Loading settings...</article>
-      ) : null}
-
-      <article className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h2 className="text-lg font-bold text-slate-900">Profile information</h2>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <input className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={profile.fullName} onChange={(e) => setProfile((p) => ({ ...p, fullName: e.target.value }))} placeholder="Full name" />
-          <input className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={profile.email} onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))} placeholder="Email" />
-          <input className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={profile.phone} onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))} placeholder="Phone" />
-          <label className="flex flex-col gap-1 text-sm text-slate-700">
-            Date of birth
-            <input title="Date of birth" aria-label="Date of birth" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" type="date" value={profile.dob} onChange={(e) => setProfile((p) => ({ ...p, dob: e.target.value }))} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm text-slate-700">
-            Gender
-            <select title="Gender" aria-label="Gender" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={profile.gender} onChange={(e) => setProfile((p) => ({ ...p, gender: e.target.value }))}>
-              <option>Male</option>
-              <option>Female</option>
-              <option>Prefer not to say</option>
-            </select>
-          </label>
-          <div className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600">Profile picture: upload or change</div>
+    <div className="space-y-8 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-xs font-bold uppercase tracking-wider text-orange-600 mb-1 flex items-center gap-1.5">
+            <Settings className="w-3.5 h-3.5" />
+            Account Management
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Settings & Preferences
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Customize your notifications, security credentials, addresses, and localization.
+          </p>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button onClick={() => void save("Profile updated successfully")} className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-600">Save profile</button>
-          <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Verify email</button>
-          <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Change email</button>
-        </div>
-      </article>
 
-      <article className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h2 className="text-lg font-bold text-slate-900">Address book</h2>
-        <p className="mt-1 text-sm text-slate-600">Billing and shipping addresses. Set default shipping address.</p>
-        <div className="mt-3 space-y-2">
-          {addresses.map((addr) => (
-            <div key={addr.id} className="rounded-lg border border-slate-100 p-3">
-              <p className="font-semibold text-slate-800">{addr.label} {addr.isDefault ? "(Default)" : ""}</p>
-              <p className="text-sm text-slate-600">{addr.line1 || "Address line"}, {addr.city || "City"}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Edit</button>
-                <button onClick={() => deleteAddress(addr.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50">Delete</button>
-                <button onClick={() => setDefault(addr.id)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Set default</button>
-              </div>
+        <Link
+          href="/account/profile"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition-colors"
+        >
+          <User className="w-3.5 h-3.5" />
+          <span>View Profile</span>
+        </Link>
+      </div>
+
+      {saveNotice && (
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+          <Check className="w-4 h-4 text-emerald-600" />
+          <span>{saveNotice}</span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Profile Card */}
+        <article className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-4">
+          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <User className="w-4 h-4 text-orange-600" />
+            Basic Profile Details
+          </h2>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Full Name
+              </label>
+              <input
+                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all font-medium text-slate-900"
+                value={profile.fullName}
+                onChange={(e) => setProfile((p) => ({ ...p, fullName: e.target.value }))}
+                placeholder="Full Name"
+              />
             </div>
-          ))}
-        </div>
-        <button onClick={addAddress} className="mt-3 rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-800">Add address</button>
-      </article>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Email
+              </label>
+              <input
+                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all font-medium text-slate-900"
+                value={profile.email}
+                onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
+                placeholder="Email Address"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Phone
+              </label>
+              <input
+                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all font-medium text-slate-900"
+                value={profile.phone}
+                onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))}
+                placeholder="+251 91 123 4567"
+              />
+            </div>
+          </div>
+          <div className="pt-2">
+            <button
+              onClick={() => void save("Profile updated successfully")}
+              disabled={isSaving}
+              className="px-5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Save Profile</span>
+            </button>
+          </div>
+        </article>
 
-      <article className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h2 className="text-lg font-bold text-slate-900">Login and security</h2>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <input className="rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Old password" type="password" />
-          <input className="rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="New password" type="password" />
-          <input className="rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Confirm new password" type="password" />
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-600">Change password</button>
-          <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Enable 2FA</button>
-          <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Manage active sessions</button>
-          <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Log out from other devices</button>
-        </div>
-      </article>
+        {/* Security Card */}
+        <article className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-4">
+          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <Lock className="w-4 h-4 text-orange-600" />
+            Login & Security
+          </h2>
 
-      <article className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h2 className="text-lg font-bold text-slate-900">Notification preferences</h2>
-        <div className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
-          <label><input type="checkbox" checked={prefs.emailOrderUpdates} onChange={(e) => setPrefs((p) => ({ ...p, emailOrderUpdates: e.target.checked }))} /> Email order updates</label>
-          <label><input type="checkbox" checked={prefs.emailWishlistAlerts} onChange={(e) => setPrefs((p) => ({ ...p, emailWishlistAlerts: e.target.checked }))} /> Email wishlist alerts</label>
-          <label><input type="checkbox" checked={prefs.emailPromotions} onChange={(e) => setPrefs((p) => ({ ...p, emailPromotions: e.target.checked }))} /> Email promotions</label>
-          <label><input type="checkbox" checked={prefs.smsAlerts} onChange={(e) => setPrefs((p) => ({ ...p, smsAlerts: e.target.checked }))} /> SMS alerts</label>
-          <label><input type="checkbox" checked={prefs.pushNotifications} onChange={(e) => setPrefs((p) => ({ ...p, pushNotifications: e.target.checked }))} /> Push notifications</label>
-        </div>
-      </article>
+          <form onSubmit={handlePasswordSubmit} className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Current Password
+              </label>
+              <input
+                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all text-slate-900"
+                placeholder="••••••••"
+                type="password"
+                required
+                value={passwordState.oldPassword}
+                onChange={(e) => setPasswordState({ ...passwordState, oldPassword: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                New Password
+              </label>
+              <input
+                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all text-slate-900"
+                placeholder="Min. 8 characters"
+                type="password"
+                required
+                value={passwordState.newPassword}
+                onChange={(e) => setPasswordState({ ...passwordState, newPassword: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Confirm New Password
+              </label>
+              <input
+                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all text-slate-900"
+                placeholder="Confirm password"
+                type="password"
+                required
+                value={passwordState.confirmPassword}
+                onChange={(e) => setPasswordState({ ...passwordState, confirmPassword: e.target.value })}
+              />
+            </div>
 
-      <article className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h2 className="text-lg font-bold text-slate-900">Privacy and data</h2>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Download my data</button>
-          <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Manage cookies consent</button>
-          <button className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50">Delete my account</button>
-        </div>
-      </article>
+            {passwordNotice && (
+              <p className="text-xs font-semibold text-slate-700 mt-2">{passwordNotice}</p>
+            )}
 
-      <article className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h2 className="text-lg font-bold text-slate-900">Preferences</h2>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <label className="flex flex-col gap-1 text-sm text-slate-700">
-            Currency
-            <select title="Currency" aria-label="Currency" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={prefs.currency} onChange={(e) => setPrefs((p) => ({ ...p, currency: e.target.value }))}>
-              <option>ETB</option>
-              <option>USD</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm text-slate-700">
-            Language
-            <select title="Language" aria-label="Language" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" value={prefs.language} onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value }))}>
-              <option>English</option>
-              <option>Amharic</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
-            <input type="checkbox" checked={prefs.newsletter} onChange={(e) => setPrefs((p) => ({ ...p, newsletter: e.target.checked }))} />
-            Subscribe to newsletter
-          </label>
-        </div>
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isChangingPassword}
+                className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+              >
+                {isChangingPassword ? "Updating Password..." : "Change Password"}
+              </button>
+            </div>
+          </form>
+        </article>
 
-        <button onClick={() => void save("Settings saved successfully")} className="mt-3 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-600">
-          Save changes
-        </button>
-      </article>
-    </section>
+        {/* Notification Preferences */}
+        <article className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-4">
+          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <Bell className="w-4 h-4 text-orange-600" />
+            Notification Preferences
+          </h2>
+          <div className="space-y-3 text-xs text-slate-700">
+            <label className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 border border-slate-100 cursor-pointer hover:bg-slate-50">
+              <div>
+                <p className="font-bold text-slate-900">Email Order Updates</p>
+                <p className="text-slate-500 text-[11px]">Real-time tracking and delivery notices</p>
+              </div>
+              <input
+                type="checkbox"
+                className="w-4 h-4 accent-orange-600 cursor-pointer"
+                checked={prefs.emailOrderUpdates}
+                onChange={(e) => setPrefs((p) => ({ ...p, emailOrderUpdates: e.target.checked }))}
+              />
+            </label>
+
+            <label className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 border border-slate-100 cursor-pointer hover:bg-slate-50">
+              <div>
+                <p className="font-bold text-slate-900">Wishlist & Price Drops</p>
+                <p className="text-slate-500 text-[11px]">Alerts when saved items go on sale</p>
+              </div>
+              <input
+                type="checkbox"
+                className="w-4 h-4 accent-orange-600 cursor-pointer"
+                checked={prefs.emailWishlistAlerts}
+                onChange={(e) => setPrefs((p) => ({ ...p, emailWishlistAlerts: e.target.checked }))}
+              />
+            </label>
+
+            <label className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 border border-slate-100 cursor-pointer hover:bg-slate-50">
+              <div>
+                <p className="font-bold text-slate-900">Weekly Promotions & Deals</p>
+                <p className="text-slate-500 text-[11px]">Discount vouchers and clearance notices</p>
+              </div>
+              <input
+                type="checkbox"
+                className="w-4 h-4 accent-orange-600 cursor-pointer"
+                checked={prefs.emailPromotions}
+                onChange={(e) => setPrefs((p) => ({ ...p, emailPromotions: e.target.checked }))}
+              />
+            </label>
+
+            <label className="flex items-center justify-between p-3 rounded-xl bg-slate-50/70 border border-slate-100 cursor-pointer hover:bg-slate-50">
+              <div>
+                <p className="font-bold text-slate-900">SMS Alerts</p>
+                <p className="text-slate-500 text-[11px]">SMS on out-for-delivery events</p>
+              </div>
+              <input
+                type="checkbox"
+                className="w-4 h-4 accent-orange-600 cursor-pointer"
+                checked={prefs.smsAlerts}
+                onChange={(e) => setPrefs((p) => ({ ...p, smsAlerts: e.target.checked }))}
+              />
+            </label>
+          </div>
+
+          <div className="pt-2">
+            <button
+              onClick={() => void save("Notification preferences saved")}
+              disabled={isSaving}
+              className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Save Notifications</span>
+            </button>
+          </div>
+        </article>
+
+        {/* Currency & Regional Preferences */}
+        <article className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-4">
+          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <Globe className="w-4 h-4 text-orange-600" />
+            Regional & Localization
+          </h2>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Display Currency
+              </label>
+              <select
+                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all font-medium text-slate-900"
+                value={prefs.currency}
+                onChange={(e) => setPrefs((p) => ({ ...p, currency: e.target.value }))}
+              >
+                <option value="ETB">Ethiopian Birr (ETB)</option>
+                <option value="USD">US Dollar (USD)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Interface Language
+              </label>
+              <select
+                className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl outline-none focus:border-orange-600 focus:ring-2 focus:ring-orange-100 transition-all font-medium text-slate-900"
+                value={prefs.language}
+                onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value }))}
+              >
+                <option value="English">English</option>
+                <option value="Amharic">Amharic (አማርኛ)</option>
+              </select>
+            </div>
+
+            <label className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50/70 border border-slate-100 cursor-pointer mt-4">
+              <input
+                type="checkbox"
+                className="w-4 h-4 accent-orange-600 cursor-pointer"
+                checked={prefs.newsletter}
+                onChange={(e) => setPrefs((p) => ({ ...p, newsletter: e.target.checked }))}
+              />
+              <span className="text-xs font-bold text-slate-800">
+                Subscribe to Meba weekly fresh grocery digest
+              </span>
+            </label>
+          </div>
+
+          <div className="pt-2">
+            <button
+              onClick={() => void save("Regional settings saved")}
+              disabled={isSaving}
+              className="px-5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Save Localization</span>
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
   );
 }
