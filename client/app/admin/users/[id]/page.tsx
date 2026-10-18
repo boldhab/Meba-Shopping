@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { getAdminUser, type AdminUserDetail } from "@/lib/api/admin";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { formatPrice } from "@/lib/utils/formatPrice";
 
-export default function AdminUserDetailPage({ params }: { params: { id: string } }) {
+export default function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const { token, user, isAuthenticated } = useAuth();
   const [account, setAccount] = useState<AdminUserDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,7 +24,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
       setError(null);
 
       try {
-        const result = await getAdminUser(token, params.id);
+        const result = await getAdminUser(token, id);
         setAccount(result);
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "Failed to load user.");
@@ -33,7 +34,7 @@ export default function AdminUserDetailPage({ params }: { params: { id: string }
     }
 
     void loadUser();
-  }, [token, isAuthenticated, user?.role, params.id]);
+  }, [token, isAuthenticated, user?.role, id]);
 
   return (
     <section className="page-stack">
