@@ -1,3 +1,5 @@
+import { CouponManager } from "./components/CouponManager";
+
 export default function AdminCouponsPage() {
   return (
     <section className="page-stack">
@@ -8,9 +10,7 @@ export default function AdminCouponsPage() {
         </p>
       </div>
 
-      <div className="panel">
-        Coupon management is ready to be implemented here next.
-      </div>
+      <CouponManager />
     </section>
   );
 }
