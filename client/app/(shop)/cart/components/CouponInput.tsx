@@ -1,76 +1,103 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, TicketPercent } from "lucide-react";
+import { Sparkles, TicketPercent, Check, X } from "lucide-react";
 import { useCart } from "@/lib/hooks/useCart";
+import { useToast } from "@/contexts/ToastContext";
 
 export function CouponInput() {
-  const { couponCode, applyCoupon, removeCoupon } = useCart();
+  const { couponCode, applyCoupon, removeCoupon, error: cartError } = useCart();
+  const { toast } = useToast();
   const [value, setValue] = useState("");
+  const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const onApply = () => {
-    if (!value.trim()) return;
-    const success = applyCoupon(value);
-    if (!success) {
-      setError("Invalid coupon. Try SAVE10 or MEBA15.");
-      return;
-    }
+  const onApply = async () => {
+    if (!value.trim() || isApplying) return;
+    setIsApplying(true);
     setError(null);
-    setValue("");
+
+    const success = await applyCoupon(value);
+    setIsApplying(false);
+
+    if (success) {
+      toast.success(`Coupon code ${value.toUpperCase()} applied!`, { title: "Discount Applied" });
+      setValue("");
+    } else {
+      setError(cartError || "Invalid or expired coupon. Try WELCOME10, MEBA15, or SUPERDEAL.");
+    }
+  };
+
+  const handleRemove = async () => {
+    await removeCoupon();
+    toast.info("Coupon removed.");
   };
 
   return (
-    <div className="rounded-[24px] border border-[#ffd9cf] bg-[linear-gradient(180deg,#fffaf8_0%,#fff3ee_100%)] p-5 shadow-[0_14px_35px_rgba(125,65,24,0.08)]">
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="grid gap-1">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#ff5a36]">
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-orange-600">
             <TicketPercent className="h-4 w-4" />
-            Coupons
+            Promo Code
           </div>
-          <h2 className="m-0 text-xl text-[#2f221c]">Marketplace discount center</h2>
-          <p className="m-0 text-sm text-[#8d7567]">Try `SAVE10` or `MEBA15` to unlock instant order savings.</p>
+          <h3 className="m-0 text-base font-bold text-slate-900">Add Discount Coupon</h3>
+          <p className="m-0 text-xs text-slate-500">
+            Use <span className="font-semibold text-slate-700">WELCOME10</span>, <span className="font-semibold text-slate-700">MEBA15</span>, or <span className="font-semibold text-slate-700">SUPERDEAL</span> to save.
+          </p>
         </div>
 
-        <div className="rounded-full bg-[#fff1ea] px-3 py-2 text-xs font-semibold text-[#d9481f]">
-          <Sparkles className="mr-1 inline h-3.5 w-3.5" />
-          Stack savings before checkout
+        <div className="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700 border border-orange-100 flex items-center gap-1">
+          <Sparkles className="h-3.5 w-3.5 text-orange-500" />
+          Instant Discount
         </div>
       </div>
 
       {couponCode ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[18px] bg-white p-4">
-          <p className="m-0 text-sm text-[#6f5a50]">
-            Applied code: <strong className="text-[#d9481f]">{couponCode}</strong>
-          </p>
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 border border-emerald-100 p-3.5">
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-600" />
+            <p className="m-0 text-sm font-semibold text-emerald-900">
+              Coupon <span className="font-bold uppercase tracking-wide">{couponCode}</span> active
+            </p>
+          </div>
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-full border border-[#ffcab8] bg-white px-4 py-2 text-sm font-semibold text-[#a14c2f]"
-            onClick={removeCoupon}
+            className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-rose-600 px-2 py-1 rounded-md hover:bg-white transition-colors"
+            onClick={handleRemove}
           >
+            <X className="w-3.5 h-3.5" />
             Remove
           </button>
         </div>
       ) : (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex gap-2">
           <input
-            className="min-w-55 flex-1 rounded-full border border-[#ffd2c7] bg-white px-4 py-3 outline-none ring-0"
+            className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all uppercase font-medium"
             type="text"
             value={value}
-            onChange={(event) => setValue(event.target.value)}
-            placeholder="Enter coupon code"
+            onChange={(event) => {
+              setValue(event.target.value);
+              if (error) setError(null);
+            }}
+            placeholder="ENTER CODE"
           />
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff5a36,#ff7a00)] px-5 py-3 font-semibold text-white shadow-[0_14px_30px_rgba(255,106,0,0.18)]"
+            disabled={isApplying || !value.trim()}
+            className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold transition-all active:scale-95 flex items-center gap-2"
             onClick={onApply}
           >
-            Apply
+            {isApplying ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              "Apply"
+            )}
           </button>
         </div>
       )}
 
-      {error ? <p className="mt-3 m-0 text-sm text-[#b42318]">{error}</p> : null}
+      {error ? <p className="mt-2.5 m-0 text-xs font-medium text-rose-600">{error}</p> : null}
     </div>
   );
 }
