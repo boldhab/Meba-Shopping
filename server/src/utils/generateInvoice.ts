@@ -1,28 +1,28 @@
 export interface InvoiceOrderData {
   id: string;
   totalAmount: number | string | any;
-  status?: string;
-  paymentStatus?: string;
-  paymentMethod?: string;
+  status?: string | null;
+  paymentStatus?: string | null;
+  paymentMethod?: string | null;
   paymentReference?: string | null;
   shippingName?: string | null;
   shippingAddress?: string | null;
   shippingCity?: string | null;
   shippingZip?: string | null;
   shippingCountry?: string | null;
-  createdAt?: string | Date;
+  createdAt?: string | Date | null;
   user?: {
     name?: string | null;
-    email?: string;
+    email?: string | null;
     phone?: string | null;
-  };
+  } | null;
   items: Array<{
-    id?: string;
+    id?: string | null;
     quantity: number;
     unitPrice: number | string | any;
     product?: {
-      name?: string;
-      slug?: string;
+      name?: string | null;
+      slug?: string | null;
     } | null;
   }>;
 }
