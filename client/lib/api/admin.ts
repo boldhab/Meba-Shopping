@@ -191,6 +191,8 @@ export async function createAdminProduct(
     imageUrl?: string | null;
     description?: string | null;
     price: number;
+    compareAtPrice?: number | null;
+    discountPercent?: number | null;
     stock: number;
     categoryId: string;
     status?: string;
@@ -207,6 +209,12 @@ export async function createAdminProduct(
   formData.append("name", input.name);
   formData.append("slug", input.slug);
   formData.append("price", String(input.price));
+  if (input.compareAtPrice !== undefined && input.compareAtPrice !== null) {
+    formData.append("compareAtPrice", String(input.compareAtPrice));
+  }
+  if (input.discountPercent !== undefined && input.discountPercent !== null) {
+    formData.append("discountPercent", String(input.discountPercent));
+  }
   formData.append("stock", String(input.stock));
   formData.append("categoryId", input.categoryId);
 
@@ -239,6 +247,8 @@ export async function updateAdminProduct(
     imageUrl?: string | null;
     description?: string | null;
     price?: number;
+    compareAtPrice?: number | null;
+    discountPercent?: number | null;
     stock?: number;
     categoryId?: string;
     status?: string;
@@ -255,6 +265,12 @@ export async function updateAdminProduct(
   if (input.name) formData.append("name", input.name);
   if (input.slug) formData.append("slug", input.slug);
   if (input.price !== undefined) formData.append("price", String(input.price));
+  if (input.compareAtPrice !== undefined) {
+    formData.append("compareAtPrice", input.compareAtPrice !== null ? String(input.compareAtPrice) : "");
+  }
+  if (input.discountPercent !== undefined) {
+    formData.append("discountPercent", input.discountPercent !== null ? String(input.discountPercent) : "");
+  }
   if (input.stock !== undefined) formData.append("stock", String(input.stock));
   if (input.categoryId) formData.append("categoryId", input.categoryId);
   if (input.description !== undefined) formData.append("description", input.description || "");
@@ -346,6 +362,9 @@ export async function updateAdminDeal(
     isDealActive?: boolean;
     dealStartAt?: string | null;
     dealEndAt?: string | null;
+    compareAtPrice?: number | null;
+    discountPercent?: number | null;
+    price?: number;
   }
 ): Promise<Product> {
   return requestApi<Product>(`/admin/deals/${productId}`, {
@@ -393,5 +412,102 @@ export async function updateAdminCartRules(
     method: "PUT",
     token,
     body: input,
+  });
+}
+
+export type AdminCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+  updatedAt: string;
+  productCount: number;
+};
+
+export async function getAdminCategories(token: string): Promise<AdminCategory[]> {
+  return requestApi<AdminCategory[]>("/admin/categories", { token });
+}
+
+export async function createAdminCategory(
+  token: string,
+  input: { name: string; slug?: string }
+): Promise<AdminCategory> {
+  return requestApi<AdminCategory>("/admin/categories", {
+    method: "POST",
+    token,
+    body: input,
+  });
+}
+
+export async function updateAdminCategory(
+  token: string,
+  id: string,
+  input: { name?: string; slug?: string }
+): Promise<AdminCategory> {
+  return requestApi<AdminCategory>(`/admin/categories/${id}`, {
+    method: "PATCH",
+    token,
+    body: input,
+  });
+}
+
+export async function deleteAdminCategory(token: string, id: string): Promise<void> {
+  return requestApi<void>(`/admin/categories/${id}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+export type AdminCoupon = {
+  id: string;
+  code: string;
+  discountPercent: number;
+  expiresAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function getAdminCoupons(token: string): Promise<AdminCoupon[]> {
+  return requestApi<AdminCoupon[]>("/admin/coupons", { token });
+}
+
+export async function createAdminCoupon(
+  token: string,
+  input: {
+    code: string;
+    discountPercent: number;
+    expiresAt?: string | null;
+    isActive?: boolean;
+  }
+): Promise<AdminCoupon> {
+  return requestApi<AdminCoupon>("/admin/coupons", {
+    method: "POST",
+    token,
+    body: input,
+  });
+}
+
+export async function updateAdminCoupon(
+  token: string,
+  id: string,
+  input: Partial<{
+    code: string;
+    discountPercent: number;
+    expiresAt: string | null;
+    isActive: boolean;
+  }>
+): Promise<AdminCoupon> {
+  return requestApi<AdminCoupon>(`/admin/coupons/${id}`, {
+    method: "PATCH",
+    token,
+    body: input,
+  });
+}
+
+export async function deleteAdminCoupon(token: string, id: string): Promise<void> {
+  return requestApi<void>(`/admin/coupons/${id}`, {
+    method: "DELETE",
+    token,
   });
 }
