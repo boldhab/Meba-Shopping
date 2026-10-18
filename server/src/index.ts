@@ -3,11 +3,13 @@ import { connectDatabase, disconnectDatabase } from "./config/database";
 import { env } from "./config/env";
 import { logger } from "./config/logger";
 import { inventoryQueue } from "./jobs/inventoryQueue";
+import { emailQueue } from "./jobs/emailQueue";
 
 async function bootstrap() {
   await connectDatabase();
 
   inventoryQueue.startCleanupScheduler();
+  emailQueue.startWorker();
 
   const app = createApp();
   const server = app.listen(env.port, () => {
@@ -17,6 +19,7 @@ async function bootstrap() {
   const shutdown = async () => {
     logger.info("Shutting down API server.");
     inventoryQueue.stopCleanupScheduler();
+    emailQueue.stopWorker();
     server.close(async () => {
       await disconnectDatabase();
       process.exit(0);
