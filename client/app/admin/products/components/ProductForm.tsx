@@ -25,6 +25,7 @@ export function ProductForm({ productId }: { productId?: string }) {
   const [existingImageUrl, setExistingImageUrl] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [compareAtPrice, setCompareAtPrice] = useState("");
   const [stock, setStock] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [status, setStatus] = useState("DRAFT");
@@ -59,6 +60,7 @@ export function ProductForm({ productId }: { productId?: string }) {
           setExistingImageUrl(product.imageUrl ?? "");
           setDescription(product.description ?? "");
           setPrice(String(product.price));
+          setCompareAtPrice(product.compareAtPrice ? String(product.compareAtPrice) : "");
           setStock(String(product.stock));
           setCategoryId(product.categoryId);
           setStatus(product.status);
@@ -120,6 +122,11 @@ export function ProductForm({ productId }: { productId?: string }) {
         imageUrl: existingImageUrl || null,
         description: description.trim() || null,
         price: Number(price),
+        compareAtPrice: compareAtPrice ? Number(compareAtPrice) : null,
+        discountPercent:
+          compareAtPrice && Number(compareAtPrice) > Number(price)
+            ? Math.round(((Number(compareAtPrice) - Number(price)) / Number(compareAtPrice)) * 100)
+            : null,
         stock: Number(stock),
         categoryId,
         status,
@@ -201,10 +208,28 @@ export function ProductForm({ productId }: { productId?: string }) {
             />
           </label>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <label className="label-stack">
-              <span>Price</span>
+              <span>Selling Price</span>
               <input className="input" type="number" min="0.01" step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} required />
+            </label>
+
+            <label className="label-stack">
+              <span>Compare-at Price (Original)</span>
+              <input
+                className="input"
+                type="number"
+                min="0.01"
+                step="0.01"
+                placeholder="e.g. 150.00"
+                value={compareAtPrice}
+                onChange={(event) => setCompareAtPrice(event.target.value)}
+              />
+              {compareAtPrice && Number(compareAtPrice) > Number(price) && Number(price) > 0 && (
+                <span className="text-[11px] font-bold text-emerald-600 mt-1">
+                  {Math.round(((Number(compareAtPrice) - Number(price)) / Number(compareAtPrice)) * 100)}% discount applied
+                </span>
+              )}
             </label>
 
             <label className="label-stack">
