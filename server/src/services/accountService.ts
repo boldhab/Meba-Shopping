@@ -1,6 +1,7 @@
 import { prisma } from "../prisma/client";
 import { ApiError } from "../utils/apiError";
 import { inventoryService } from "./inventoryService";
+import { paymentService } from "./paymentService";
 import type { OrderStatus, PaymentStatus, MessageCategory } from "@prisma/client";
 
 export const accountService = {
@@ -26,20 +27,37 @@ export const accountService = {
     if (order.status === "SHIPPED" || order.status === "DELIVERED") {
       throw new ApiError(400, "Cannot cancel a shipped or delivered order.");
     }
+    if (order.status === "CANCELLED") {
+      throw new ApiError(400, "Order is already cancelled.");
+    }
 
-    const paymentStatus = order.paymentStatus === "PAID" ? "REFUNDED" : order.paymentStatus;
+    // Release stock before marking order as cancelled
+    try {
+      await inventoryService.releaseStockForOrder(orderId);
+    } catch (e) {
+      console.warn("Error releasing stock on user cancel:", e);
+    }
+
+    // If order was paid via Stripe, process real refund
+    let paymentStatus: PaymentStatus = order.paymentStatus;
+    if (order.paymentStatus === "PAID") {
+      if (order.stripePaymentId) {
+        try {
+          await paymentService.refundPayment(order.stripePaymentId);
+          paymentStatus = "REFUNDED";
+        } catch (refundError: any) {
+          throw new ApiError(500, `Failed to process Stripe refund: ${refundError.message}`);
+        }
+      } else {
+        paymentStatus = "REFUNDED";
+      }
+    }
 
     const updated = await prisma.order.update({
       where: { id: orderId },
       data: { status: "CANCELLED", paymentStatus },
       include: { items: { include: { product: true } } },
     });
-
-    try {
-      await inventoryService.releaseStockForOrder(orderId);
-    } catch (e) {
-      console.warn("Error releasing stock reservations on user cancel:", e);
-    }
 
     return updated;
   },
