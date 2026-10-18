@@ -1,4 +1,4 @@
-﻿import dotenv from "dotenv";
+import dotenv from "dotenv";
 import { z } from "zod";
 
 dotenv.config();
@@ -29,7 +29,12 @@ const envSchema = z.object({
   GOOGLE_REDIRECT_URI: z.preprocess(emptyToUndefined, z.union([z.string().url(), z.literal("")]).optional()),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
-  BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(8).max(15).default(10)
+  BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(8).max(15).default(10),
+  STRIPE_SECRET_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
+  STRIPE_WEBHOOK_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
+  STRIPE_CURRENCY: z.string().default("usd"),
+  PLATFORM_CURRENCY: z.string().default("ETB"),
+  ETB_TO_USD_EXCHANGE_RATE: z.coerce.number().positive().default(0.008)
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -59,5 +64,10 @@ export const env = {
   rateLimitWindowMs: values.RATE_LIMIT_WINDOW_MS,
   rateLimitMax: values.RATE_LIMIT_MAX,
   bcryptSaltRounds: values.BCRYPT_SALT_ROUNDS,
+  stripeSecretKey: values.STRIPE_SECRET_KEY,
+  stripeWebhookSecret: values.STRIPE_WEBHOOK_SECRET,
+  stripeCurrency: values.STRIPE_CURRENCY,
+  platformCurrency: values.PLATFORM_CURRENCY,
+  etbToUsdExchangeRate: values.ETB_TO_USD_EXCHANGE_RATE,
   isProduction: values.NODE_ENV === "production"
 };
