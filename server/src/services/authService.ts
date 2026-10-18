@@ -1,10 +1,12 @@
 import crypto from "node:crypto";
+import { VerificationType } from "@prisma/client";
 import { mailer } from "../config/mailer";
 import { userRepository } from "../repositories/userRepository";
 import { env } from "../config/env";
 import { ApiError } from "../utils/apiError";
 import { generateToken } from "../utils/generateToken";
 import { hashPassword, verifyPassword } from "../utils/hashPassword";
+import { prisma } from "../prisma/client";
 
 type UserRole = "CUSTOMER" | "ADMIN";
 
@@ -50,18 +52,8 @@ type AuthUserRecord = {
   passwordHash: string;
 } & Record<string, unknown>;
 
-type EmailVerificationRecord = {
-  code: string;
-  expiresAt: number;
-  sentAt: number;
-  attemptsLeft: number;
-};
-
-const oauthStateStore = new Map<string, number>();
-const emailVerificationStore = new Map<string, EmailVerificationRecord>();
-const passwordResetStore = new Map<string, EmailVerificationRecord>();
-
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+const OAUTH_AUTH_CODE_TTL_MS = 60 * 1000;
 const EMAIL_VERIFICATION_TTL_MS = 10 * 60 * 1000;
 const EMAIL_VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
 const EMAIL_VERIFICATION_MAX_ATTEMPTS = 5;
@@ -74,36 +66,66 @@ function sanitizeUser(user: { passwordHash: string } & Record<string, unknown>) 
   return safeUser;
 }
 
-function purgeExpiredOauthState() {
-  const now = Date.now();
-
-  for (const [key, expiresAt] of oauthStateStore.entries()) {
-    if (expiresAt <= now) {
-      oauthStateStore.delete(key);
-    }
-  }
+async function saveAuthToken(data: {
+  key: string;
+  code: string;
+  type: VerificationType;
+  expiresAt: Date;
+  metadata?: any;
+  attemptsLeft?: number;
+}) {
+  return prisma.authToken.upsert({
+    where: { key: data.key },
+    update: {
+      code: data.code,
+      type: data.type,
+      expiresAt: data.expiresAt,
+      sentAt: new Date(),
+      attemptsLeft: data.attemptsLeft ?? 5,
+      metadata: data.metadata ?? undefined,
+    },
+    create: {
+      key: data.key,
+      code: data.code,
+      type: data.type,
+      expiresAt: data.expiresAt,
+      sentAt: new Date(),
+      attemptsLeft: data.attemptsLeft ?? 5,
+      metadata: data.metadata ?? undefined,
+    },
+  });
 }
 
-function purgeExpiredEmailVerificationCode() {
-  const now = Date.now();
+async function getAuthToken(key: string, type: VerificationType) {
+  return prisma.authToken.findFirst({
+    where: { key, type },
+  });
+}
 
-  for (const [key, value] of emailVerificationStore.entries()) {
-    if (value.expiresAt <= now) {
-      emailVerificationStore.delete(key);
-    }
-  }
+async function deleteAuthToken(key: string) {
+  await prisma.authToken.deleteMany({
+    where: { key },
+  });
+}
+
+async function purgeExpiredTokens() {
+  await prisma.authToken.deleteMany({
+    where: {
+      expiresAt: { lt: new Date() },
+    },
+  });
 }
 
 function createTokenResponse(user: AuthUserRecord) {
   const token = generateToken({
     sub: user.id,
     email: user.email,
-    role: user.role
+    role: user.role,
   });
 
   return {
     user: sanitizeUser(user),
-    token
+    token,
   };
 }
 
@@ -115,15 +137,15 @@ async function exchangeGoogleCodeForToken(code: string) {
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
+      "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
       code,
       client_id: env.googleClientId,
       client_secret: env.googleClientSecret,
       redirect_uri: env.googleRedirectUri,
-      grant_type: "authorization_code"
-    })
+      grant_type: "authorization_code",
+    }),
   });
 
   if (!response.ok) {
@@ -136,8 +158,8 @@ async function exchangeGoogleCodeForToken(code: string) {
 async function fetchGoogleUserProfile(accessToken: string) {
   const response = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
     headers: {
-      Authorization: `Bearer ${accessToken}`
-    }
+      Authorization: `Bearer ${accessToken}`,
+    },
   });
 
   if (!response.ok) {
@@ -160,13 +182,13 @@ async function getOrCreateUserByEmail(email: string, name?: string) {
     email,
     name,
     passwordHash,
-    role: "CUSTOMER"
+    role: "CUSTOMER",
   });
 }
 
 export const authService = {
   async requestEmailVerification(input: EmailVerificationRequestInput) {
-    purgeExpiredEmailVerificationCode();
+    await purgeExpiredTokens();
 
     const normalizedEmail = input.email.toLowerCase();
     const existingUser = await userRepository.findByEmail(normalizedEmail);
@@ -176,10 +198,10 @@ export const authService = {
     }
 
     const now = Date.now();
-    const existingVerification = emailVerificationStore.get(normalizedEmail);
+    const existing = await getAuthToken(normalizedEmail, VerificationType.EMAIL_VERIFICATION);
 
-    if (existingVerification) {
-      const elapsedMs = now - existingVerification.sentAt;
+    if (existing) {
+      const elapsedMs = now - existing.sentAt.getTime();
 
       if (elapsedMs < EMAIL_VERIFICATION_RESEND_COOLDOWN_MS) {
         throw new ApiError(
@@ -191,29 +213,30 @@ export const authService = {
 
     const code = `${Math.floor(100000 + Math.random() * 900000)}`;
 
-    emailVerificationStore.set(normalizedEmail, {
+    await saveAuthToken({
+      key: normalizedEmail,
       code,
-      expiresAt: now + EMAIL_VERIFICATION_TTL_MS,
-      sentAt: now,
-      attemptsLeft: EMAIL_VERIFICATION_MAX_ATTEMPTS
+      type: VerificationType.EMAIL_VERIFICATION,
+      expiresAt: new Date(now + EMAIL_VERIFICATION_TTL_MS),
+      attemptsLeft: EMAIL_VERIFICATION_MAX_ATTEMPTS,
     });
 
     try {
       await mailer.sendVerificationCode(normalizedEmail, code, Math.floor(EMAIL_VERIFICATION_TTL_MS / 60000));
     } catch (error) {
-      emailVerificationStore.delete(normalizedEmail);
+      await deleteAuthToken(normalizedEmail);
       throw new ApiError(500, error instanceof Error ? error.message : "Failed to send verification email.");
     }
 
     return {
       message: "Verification code sent to your email.",
       expiresInSeconds: Math.floor(EMAIL_VERIFICATION_TTL_MS / 1000),
-      devVerificationCode: env.isProduction ? undefined : code
+      devVerificationCode: env.isProduction ? undefined : code,
     };
   },
 
   async register(input: RegisterInput) {
-    purgeExpiredEmailVerificationCode();
+    await purgeExpiredTokens();
 
     if (input.role === "ADMIN") {
       throw new ApiError(403, "Admin accounts cannot be created through public registration.");
@@ -226,25 +249,27 @@ export const authService = {
       throw new ApiError(409, "An account with that email already exists.");
     }
 
-    const verification = emailVerificationStore.get(normalizedEmail);
+    const verification = await getAuthToken(normalizedEmail, VerificationType.EMAIL_VERIFICATION);
 
-    if (!verification || verification.expiresAt < Date.now()) {
+    if (!verification || verification.expiresAt.getTime() < Date.now()) {
       throw new ApiError(401, "Verification code has expired. Please request a new one.");
     }
 
     if (verification.attemptsLeft <= 0) {
-      emailVerificationStore.delete(normalizedEmail);
+      await deleteAuthToken(normalizedEmail);
       throw new ApiError(429, "Too many invalid verification attempts. Please request a new code.");
     }
 
     if (verification.code !== input.verificationCode.trim()) {
-      verification.attemptsLeft -= 1;
-      emailVerificationStore.set(normalizedEmail, verification);
+      await prisma.authToken.update({
+        where: { id: verification.id },
+        data: { attemptsLeft: { decrement: 1 } },
+      });
 
       throw new ApiError(401, "Invalid verification code.");
     }
 
-    emailVerificationStore.delete(normalizedEmail);
+    await deleteAuthToken(normalizedEmail);
 
     const passwordHash = await hashPassword(input.password);
 
@@ -252,7 +277,7 @@ export const authService = {
       email: normalizedEmail,
       name: input.name,
       passwordHash,
-      role: input.role ?? "CUSTOMER"
+      role: input.role ?? "CUSTOMER",
     });
 
     return createTokenResponse(user as AuthUserRecord);
@@ -274,15 +299,20 @@ export const authService = {
     return createTokenResponse(user as AuthUserRecord);
   },
 
-  createGoogleAuthUrl() {
+  async createGoogleAuthUrl() {
     if (!env.googleClientId || !env.googleClientSecret || !env.googleRedirectUri) {
       throw new ApiError(500, "Google auth is not configured on the server.");
     }
 
-    purgeExpiredOauthState();
+    await purgeExpiredTokens();
 
     const state = crypto.randomUUID();
-    oauthStateStore.set(state, Date.now() + OAUTH_STATE_TTL_MS);
+    await saveAuthToken({
+      key: state,
+      code: state,
+      type: VerificationType.OAUTH_STATE,
+      expiresAt: new Date(Date.now() + OAUTH_STATE_TTL_MS),
+    });
 
     const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
     authUrl.searchParams.set("client_id", env.googleClientId);
@@ -297,15 +327,15 @@ export const authService = {
   },
 
   async googleCallback(input: GoogleCallbackInput) {
-    purgeExpiredOauthState();
+    await purgeExpiredTokens();
 
-    const expiresAt = oauthStateStore.get(input.state);
+    const stateRecord = await getAuthToken(input.state, VerificationType.OAUTH_STATE);
 
-    if (!expiresAt || expiresAt < Date.now()) {
+    if (!stateRecord || stateRecord.expiresAt.getTime() < Date.now()) {
       throw new ApiError(401, "Invalid or expired Google OAuth state.");
     }
 
-    oauthStateStore.delete(input.state);
+    await deleteAuthToken(input.state);
 
     const tokenResponse = await exchangeGoogleCodeForToken(input.code);
     const profile = await fetchGoogleUserProfile(tokenResponse.access_token);
@@ -317,11 +347,42 @@ export const authService = {
     const user = await getOrCreateUserByEmail(profile.email.toLowerCase(), profile.name);
     const auth = createTokenResponse(user as AuthUserRecord);
 
+    const exchangeCode = crypto.randomUUID();
+    await saveAuthToken({
+      key: exchangeCode,
+      code: exchangeCode,
+      type: VerificationType.OAUTH_EXCHANGE,
+      expiresAt: new Date(Date.now() + OAUTH_AUTH_CODE_TTL_MS),
+      metadata: {
+        token: auth.token,
+        user: user as AuthUserRecord,
+      },
+    });
+
     const clientRedirect = new URL(`${env.clientUrl}/login`);
-    clientRedirect.searchParams.set("token", auth.token);
+    clientRedirect.searchParams.set("code", exchangeCode);
     clientRedirect.searchParams.set("provider", "google");
 
     return clientRedirect.toString();
+  },
+
+  async exchangeOAuthCode(code: string) {
+    const entry = await getAuthToken(code, VerificationType.OAUTH_EXCHANGE);
+    if (!entry) {
+      throw new ApiError(400, "Invalid or expired authorization code.");
+    }
+
+    await deleteAuthToken(code);
+
+    if (entry.expiresAt.getTime() < Date.now()) {
+      throw new ApiError(400, "Authorization code has expired.");
+    }
+
+    const meta = (entry.metadata || {}) as { token: string; user: AuthUserRecord };
+    return {
+      token: meta.token,
+      user: sanitizeUser(meta.user),
+    };
   },
 
   async getCurrentUser(userId: string) {
@@ -336,24 +397,19 @@ export const authService = {
 
   async requestPasswordReset(input: { email: string }) {
     const normalizedEmail = input.email.toLowerCase();
-
-    // Purge expired entries
-    const now = Date.now();
-    for (const [key, value] of passwordResetStore.entries()) {
-      if (value.expiresAt <= now) passwordResetStore.delete(key);
-    }
+    await purgeExpiredTokens();
 
     const user = await userRepository.findByEmail(normalizedEmail);
 
-    // Always respond the same way to avoid user-enumeration
     if (!user) {
       return { message: "If that email is registered, a reset code has been sent." };
     }
 
-    const existing = passwordResetStore.get(normalizedEmail);
+    const now = Date.now();
+    const existing = await getAuthToken(normalizedEmail, VerificationType.PASSWORD_RESET);
 
     if (existing) {
-      const elapsed = now - existing.sentAt;
+      const elapsed = now - existing.sentAt.getTime();
       if (elapsed < PASSWORD_RESET_RESEND_COOLDOWN_MS) {
         throw new ApiError(
           429,
@@ -364,47 +420,50 @@ export const authService = {
 
     const code = `${Math.floor(100000 + Math.random() * 900000)}`;
 
-    passwordResetStore.set(normalizedEmail, {
+    await saveAuthToken({
+      key: normalizedEmail,
       code,
-      expiresAt: now + PASSWORD_RESET_TTL_MS,
-      sentAt: now,
-      attemptsLeft: PASSWORD_RESET_MAX_ATTEMPTS
+      type: VerificationType.PASSWORD_RESET,
+      expiresAt: new Date(now + PASSWORD_RESET_TTL_MS),
+      attemptsLeft: PASSWORD_RESET_MAX_ATTEMPTS,
     });
 
     try {
       await mailer.sendPasswordResetCode(normalizedEmail, code, Math.floor(PASSWORD_RESET_TTL_MS / 60000));
     } catch (error) {
-      passwordResetStore.delete(normalizedEmail);
+      await deleteAuthToken(normalizedEmail);
       throw new ApiError(500, error instanceof Error ? error.message : "Failed to send password reset email.");
     }
 
     return {
       message: "If that email is registered, a reset code has been sent.",
-      devResetCode: env.isProduction ? undefined : code
+      devResetCode: env.isProduction ? undefined : code,
     };
   },
 
   async confirmPasswordReset(input: { email: string; code: string; newPassword: string }) {
     const normalizedEmail = input.email.toLowerCase();
 
-    const record = passwordResetStore.get(normalizedEmail);
+    const record = await getAuthToken(normalizedEmail, VerificationType.PASSWORD_RESET);
 
-    if (!record || record.expiresAt < Date.now()) {
+    if (!record || record.expiresAt.getTime() < Date.now()) {
       throw new ApiError(401, "Reset code has expired. Please request a new one.");
     }
 
     if (record.attemptsLeft <= 0) {
-      passwordResetStore.delete(normalizedEmail);
+      await deleteAuthToken(normalizedEmail);
       throw new ApiError(429, "Too many invalid attempts. Please request a new code.");
     }
 
     if (record.code !== input.code.trim()) {
-      record.attemptsLeft -= 1;
-      passwordResetStore.set(normalizedEmail, record);
+      await prisma.authToken.update({
+        where: { id: record.id },
+        data: { attemptsLeft: { decrement: 1 } },
+      });
       throw new ApiError(401, "Invalid reset code.");
     }
 
-    passwordResetStore.delete(normalizedEmail);
+    await deleteAuthToken(normalizedEmail);
 
     const user = await userRepository.findByEmail(normalizedEmail);
 
@@ -416,5 +475,29 @@ export const authService = {
     await userRepository.updatePassword(user.id, passwordHash);
 
     return { message: "Password updated successfully. You can now log in with your new password." };
-  }
+  },
+
+  async changePassword(userId: string, input: { currentPassword?: string; newPassword?: string }) {
+    if (!input.currentPassword) {
+      throw new ApiError(400, "Current password is required.");
+    }
+    if (!input.newPassword || input.newPassword.length < 8) {
+      throw new ApiError(400, "New password must be at least 8 characters long.");
+    }
+
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw new ApiError(404, "User not found.");
+    }
+
+    const isValidCurrent = await verifyPassword(input.currentPassword, user.passwordHash);
+    if (!isValidCurrent) {
+      throw new ApiError(400, "Incorrect current password.");
+    }
+
+    const passwordHash = await hashPassword(input.newPassword);
+    await userRepository.updatePassword(userId, passwordHash);
+
+    return { message: "Password updated successfully." };
+  },
 };

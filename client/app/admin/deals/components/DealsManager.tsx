@@ -11,6 +11,9 @@ type EditableDeal = {
   isDealActive: boolean;
   dealStartAt: string;
   dealEndAt: string;
+  price: string;
+  compareAtPrice: string;
+  discountPercent: string;
 };
 
 const DEAL_TYPE_OPTIONS: Array<{ label: string; value: DealType | "NONE" }> = [
@@ -37,6 +40,9 @@ function toEditableDeal(product: Product): EditableDeal {
     isDealActive: product.isDealActive,
     dealStartAt: toInputDateTime(product.dealStartAt),
     dealEndAt: toInputDateTime(product.dealEndAt),
+    price: product.price ? String(product.price) : "",
+    compareAtPrice: product.compareAtPrice ? String(product.compareAtPrice) : "",
+    discountPercent: product.discountPercent ? String(product.discountPercent) : "",
   };
 }
 
@@ -129,6 +135,9 @@ export function DealsManager() {
         isDealActive: draft.isDealActive,
         dealStartAt: draft.dealStartAt ? new Date(draft.dealStartAt).toISOString() : null,
         dealEndAt: draft.dealEndAt ? new Date(draft.dealEndAt).toISOString() : null,
+        compareAtPrice: draft.compareAtPrice ? Number(draft.compareAtPrice) : null,
+        discountPercent: draft.discountPercent ? Number(draft.discountPercent) : null,
+        price: draft.price ? Number(draft.price) : undefined,
       };
 
       const updated = await updateAdminDeal(token, productId, payload);
@@ -203,6 +212,7 @@ export function DealsManager() {
               <th className="px-3 py-2">Product</th>
               <th className="px-3 py-2">Deal Type</th>
               <th className="px-3 py-2">Active</th>
+              <th className="px-3 py-2">Price & Discount</th>
               <th className="px-3 py-2">Start</th>
               <th className="px-3 py-2">End</th>
               <th className="px-3 py-2">Action</th>
@@ -242,6 +252,70 @@ export function DealsManager() {
                     </label>
                   </td>
                   <td className="px-3 py-2">
+                    <div className="flex flex-col gap-1 min-w-[130px]">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span className="text-slate-500 w-10">Sale:</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          aria-label={`Sale price for ${item.name}`}
+                          className="w-20 rounded border border-slate-300 px-1.5 py-0.5 text-xs font-semibold text-slate-800"
+                          value={draft.price}
+                          onChange={(e) => updateDraft(item.id, { price: e.target.value })}
+                        />
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span className="text-slate-500 w-10">Orig:</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="MSRP"
+                          aria-label={`Original price for ${item.name}`}
+                          className="w-20 rounded border border-slate-300 px-1.5 py-0.5 text-xs text-slate-500"
+                          value={draft.compareAtPrice}
+                          onChange={(e) => {
+                            const comp = e.target.value;
+                            const p = Number(draft.price);
+                            const c = Number(comp);
+                            const disc = c > p ? Math.round(((c - p) / c) * 100) : "";
+                            updateDraft(item.id, { compareAtPrice: comp, discountPercent: String(disc) });
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span className="text-slate-500 w-10">Off %:</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="99"
+                          placeholder="%"
+                          aria-label={`Discount percentage for ${item.name}`}
+                          className="w-14 rounded border border-slate-300 px-1.5 py-0.5 text-xs font-bold text-rose-600"
+                          value={draft.discountPercent}
+                          onChange={(e) => {
+                            const disc = e.target.value;
+                            const numDisc = Number(disc);
+                            let orig = Number(draft.compareAtPrice);
+                            let curr = Number(draft.price);
+                            if (numDisc > 0 && numDisc < 100) {
+                              if (!orig || orig <= curr) {
+                                orig = curr;
+                              }
+                              curr = Number((orig * (1 - numDisc / 100)).toFixed(2));
+                              updateDraft(item.id, {
+                                discountPercent: disc,
+                                compareAtPrice: String(orig),
+                                price: String(curr),
+                              });
+                            } else {
+                              updateDraft(item.id, { discountPercent: disc });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
                     <input
                       type="datetime-local"
                       aria-label={`Deal start date for ${item.name}`}
@@ -276,7 +350,7 @@ export function DealsManager() {
             })}
             {filteredItems.length === 0 ? (
               <tr>
-                <td className="px-3 py-5 text-center text-sm text-slate-500" colSpan={6}>
+                <td className="px-3 py-5 text-center text-sm text-slate-500" colSpan={7}>
                   No products match the selected deal filters.
                 </td>
               </tr>

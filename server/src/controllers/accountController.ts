@@ -90,7 +90,7 @@ export const accountController = {
   async getMessages(request: Request, response: Response, next: NextFunction) {
     try {
       const messages = await accountService.getMessages(getUserId(request));
-      response.json({ items: messages, unreadCount: messages.filter((message) => !message.read && !message.archived).length });
+      response.json({ items: messages, unreadCount: messages.filter((message: any) => !message.read && !message.archived).length });
     } catch (error) {
       next(error);
     }

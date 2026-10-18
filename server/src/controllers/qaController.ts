@@ -29,9 +29,15 @@ export const qaController = {
           text,
           productId,
           userId,
+          status: "APPROVED",
         },
         include: {
           user: { select: { id: true, name: true } },
+          answers: {
+            include: {
+              user: { select: { id: true, name: true, role: true } },
+            },
+          },
         },
       });
 

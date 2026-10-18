@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { getAdminOrder, type AdminOrder } from "@/lib/api/admin";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { formatPrice } from "@/lib/utils/formatPrice";
 import { UpdateStatus } from "../components/UpdateStatus";
 
-export default function AdminOrderDetailPage({ params }: { params: { id: string } }) {
+export default function AdminOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const { token, user, isAuthenticated } = useAuth();
   const [order, setOrder] = useState<AdminOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,7 +25,7 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
       setError(null);
 
       try {
-        const result = await getAdminOrder(token, params.id);
+        const result = await getAdminOrder(token, id);
         setOrder(result);
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "Failed to load order.");
@@ -34,7 +35,7 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
     }
 
     void loadOrder();
-  }, [token, isAuthenticated, user?.role, params.id]);
+  }, [token, isAuthenticated, user?.role, id]);
 
   return (
     <section className="page-stack">

@@ -29,6 +29,8 @@ export interface Product {
   imageUrl: string | null;
   description: string | null;
   price: string;
+  compareAtPrice?: string | number | null;
+  discountPercent?: number | null;
   stock: number;
   dealType: DealType | null;
   isDealActive: boolean;

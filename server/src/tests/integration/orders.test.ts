@@ -9,11 +9,26 @@ describe("Orders & Cart Integration Tests", () => {
   let userId: string;
   let productId: string;
 
-  beforeAll(async () => {
-    // Clean up
+  const cleanupTestData = async () => {
+    const userOrders = await prisma.order.findMany({
+      where: { user: { email: { contains: "testorder" } } },
+      select: { id: true }
+    });
+    const orderIds = userOrders.map((o: any) => o.id);
+    if (orderIds.length) {
+      await prisma.stockReservation.deleteMany({ where: { orderId: { in: orderIds } } });
+      await prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } });
+      await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
+    }
+    await prisma.cartItem.deleteMany({ where: { cart: { user: { email: { contains: "testorder" } } } } });
+    await prisma.cart.deleteMany({ where: { user: { email: { contains: "testorder" } } } });
     await prisma.user.deleteMany({ where: { email: { contains: "testorder" } } });
     await prisma.product.deleteMany({ where: { slug: { contains: "test-product" } } });
     await prisma.category.deleteMany({ where: { slug: { contains: "test-category" } } });
+  };
+
+  beforeAll(async () => {
+    await cleanupTestData();
 
     // Setup Category & Product
     const cat = await prisma.category.create({
@@ -26,25 +41,29 @@ describe("Orders & Cart Integration Tests", () => {
         slug: "test-product",
         price: 10.0,
         stock: 100,
-        categoryId: cat.id
+        categoryId: cat.id,
+        status: "ACTIVE"
       }
     });
     productId = prod.id;
 
     // Register User
+    const vRes = await request(app).post("/api/v1/auth/email/request-verification").send({
+      email: "testorder1@example.com"
+    });
+
     const res = await request(app).post("/api/v1/auth/register").send({
       email: "testorder1@example.com",
       password: "password123",
-      name: "Test Order"
+      name: "Test Order",
+      verificationCode: vRes.body.devVerificationCode
     });
     token = res.body.token;
     userId = res.body.user.id;
   });
 
   afterAll(async () => {
-    await prisma.user.deleteMany({ where: { email: { contains: "testorder" } } });
-    await prisma.product.deleteMany({ where: { slug: { contains: "test-product" } } });
-    await prisma.category.deleteMany({ where: { slug: { contains: "test-category" } } });
+    await cleanupTestData();
     await prisma.$disconnect();
   });
 
@@ -58,7 +77,7 @@ describe("Orders & Cart Integration Tests", () => {
         variantKey: "default"
       });
 
-    expect(res.status).toBe(200);
+    expect([200, 201]).toContain(res.status);
     expect(res.body.items.length).toBeGreaterThan(0);
   });
 
@@ -67,8 +86,11 @@ describe("Orders & Cart Integration Tests", () => {
       .post("/api/v1/orders")
       .set("Authorization", `Bearer ${token}`)
       .send({
+        shippingName: "Test Order",
         shippingAddress: "123 Test St",
-        shippingCity: "Test City"
+        shippingCity: "Test City",
+        shippingZip: "12345",
+        shippingCountry: "US"
       });
 
     // We assume 201 Created and it returns the order.

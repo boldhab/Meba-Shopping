@@ -41,7 +41,7 @@ type QuoteSerializedItem = {
 	variantLabel: string | null;
 };
 
-const DEFAULT_SHIPPING_FEE = 7.99;
+const DEFAULT_SHIPPING_FEE = 100;
 
 function toVariantKey(variantId?: string | null) {
 	return variantId?.trim() || "default";
@@ -440,7 +440,7 @@ export const cartRepository = {
 
 		const entries = Array.from(grouped.values());
 		const productIds = entries.map((item) => item.productId);
-		const products = productIds.length
+		const products = (productIds.length
 			? await prisma.product.findMany({
 				where: { id: { in: productIds } },
 				select: {
@@ -451,7 +451,7 @@ export const cartRepository = {
 					stock: true,
 				},
 			})
-			: [];
+			: []) as Array<{ id: string; slug: string; name: string; price: any; stock: number }>;
 
 		const productsById = new Map(products.map((product) => [product.id, product]));
 		const serializedItems: QuoteSerializedItem[] = [];

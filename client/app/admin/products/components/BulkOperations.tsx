@@ -42,10 +42,13 @@ export function BulkOperations() {
         body: formData
       });
 
-      if (!response.ok) throw new Error("Import failed.");
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => null);
+        throw new Error(errJson?.message || "Import failed.");
+      }
       
       const result = await response.json();
-      setMessage({ type: "success", text: `Successfully imported ${result.count} products.` });
+      setMessage({ type: "success", text: result.message || `Successfully imported ${result.count} products.` });
       setFile(null);
     } catch (err) {
       setMessage({ type: "error", text: err instanceof Error ? err.message : "Failed to import products." });

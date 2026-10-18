@@ -8,6 +8,9 @@ import {
   fetchUnreadMessageCount,
   listenForAccountStoreUpdates,
 } from "@/lib/api/account";
+import { getProducts, type Product } from "@/lib/api/products";
+import { formatPrice } from "@/lib/utils/formatPrice";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useCart } from "@/lib/hooks/useCart";
 import { AdminNavbar } from "./AdminNavbar";
@@ -59,11 +62,12 @@ export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, logout, token, user } = useAuth();
-  const { totalItems: cartCount } = useCart();
+  const { totalItems: cartCount, openCartDrawer } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
@@ -72,22 +76,36 @@ export function Navbar() {
   const searchRef = useRef<HTMLDivElement>(null);
   let mouseLeaveTimeout: NodeJS.Timeout;
 
-  // Popular search suggestions
   const popularSearches = [
-    "iPhone 15", "Laptop", "Shoes", "Dress", "Watch", "Headphones", "TV", "Camera"
+    "Sony Headphones", "Apple Watch", "Bananas", "Whole Milk", "Honey", "Denim Jacket", "Coffee Set"
   ];
 
+  const debouncedSearch = useDebounce(searchText.trim(), 250);
+
   useEffect(() => {
-    if (searchText.length > 1) {
-      // Simulate API call for suggestions
-      const filtered = popularSearches.filter(s => 
-        s.toLowerCase().includes(searchText.toLowerCase())
-      );
-      setSearchSuggestions(filtered.slice(0, 5));
+    let isMounted = true;
+
+    if (debouncedSearch.length >= 2) {
+      setIsSearching(true);
+      getProducts({ search: debouncedSearch, limit: "5" })
+        .then((res) => {
+          if (isMounted) setSearchResults(res.items);
+        })
+        .catch(() => {
+          if (isMounted) setSearchResults([]);
+        })
+        .finally(() => {
+          if (isMounted) setIsSearching(false);
+        });
     } else {
-      setSearchSuggestions([]);
+      setSearchResults([]);
+      setIsSearching(false);
     }
-  }, [searchText]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [debouncedSearch]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -258,48 +276,94 @@ export function Navbar() {
 
                 {/* Search Suggestions Dropdown */}
                 <AnimatePresence>
-                  {isSearchFocused && (searchSuggestions.length > 0 || searchText.length === 0) && (
+                  {isSearchFocused && (
                     <motion.div
                       variants={dropdownVariants}
                       initial="hidden"
                       animate="visible"
                       exit="exit"
-                      className="absolute left-0 right-0 top-full mt-2 rounded-xl border border-slate-200 bg-white shadow-xl z-50 overflow-hidden"
+                      className="absolute left-0 right-0 top-full mt-2 rounded-2xl border border-slate-200 bg-white shadow-2xl z-50 overflow-hidden"
                     >
-                      {searchText.length === 0 ? (
+                      {searchText.trim().length === 0 ? (
+                        <div className="p-4">
+                          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
+                            Popular Searches
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {popularSearches.map((term) => (
+                              <button
+                                key={term}
+                                type="button"
+                                onClick={() => {
+                                  setSearchText(term);
+                                  router.push(`/products?search=${encodeURIComponent(term)}`);
+                                  setIsSearchFocused(false);
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-orange-50 hover:text-orange-600 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+                              >
+                                <TrendingUp className="h-3 w-3 text-slate-400" />
+                                {term}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : isSearching ? (
+                        <div className="flex items-center justify-center p-6 gap-2 text-sm text-slate-500">
+                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                          Searching catalog...
+                        </div>
+                      ) : searchResults.length > 0 ? (
                         <div className="py-2">
-                          <p className="px-4 py-2 text-xs font-semibold text-slate-400">Popular Searches</p>
-                          {popularSearches.map((term) => (
-                            <button
-                              key={term}
-                              onClick={() => {
-                                setSearchText(term);
-                                router.push(`/products?search=${encodeURIComponent(term)}`);
-                                setIsSearchFocused(false);
-                              }}
-                              className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-orange-50"
+                          <div className="px-4 py-1.5 flex items-center justify-between text-xs font-semibold text-slate-400 border-b border-slate-100 mb-1">
+                            <span>Matching Products</span>
+                            <span>{searchResults.length} found</span>
+                          </div>
+                          {searchResults.map((product) => (
+                            <Link
+                              key={product.id}
+                              href={`/products/${product.slug || product.id}`}
+                              onClick={() => setIsSearchFocused(false)}
+                              className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors group"
                             >
-                              <TrendingUp className="h-3.5 w-3.5 text-slate-400" />
-                              {term}
-                            </button>
+                              {product.imageUrl ? (
+                                <img
+                                  src={product.imageUrl}
+                                  alt={product.name}
+                                  className="w-10 h-10 object-cover rounded-lg border border-slate-100 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 bg-slate-100 rounded-lg shrink-0 flex items-center justify-center text-slate-400">
+                                  <ShoppingBag className="w-5 h-5" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                                  {product.name}
+                                </p>
+                                {product.category && (
+                                  <p className="text-xs text-slate-400">
+                                    {product.category.name}
+                                  </p>
+                                )}
+                              </div>
+                              <span className="text-sm font-bold text-slate-900 shrink-0">
+                                {formatPrice(product.price)}
+                              </span>
+                            </Link>
                           ))}
+                          <div className="border-t border-slate-100 p-2 text-center bg-slate-50/50">
+                            <button
+                              type="button"
+                              onClick={handleSearch}
+                              className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer"
+                            >
+                              View all results for &quot;{searchText}&quot; →
+                            </button>
+                          </div>
                         </div>
                       ) : (
-                        <div className="py-2">
-                          {searchSuggestions.map((suggestion) => (
-                            <button
-                              key={suggestion}
-                              onClick={() => {
-                                setSearchText(suggestion);
-                                router.push(`/products?search=${encodeURIComponent(suggestion)}`);
-                                setIsSearchFocused(false);
-                              }}
-                              className="flex w-full items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-orange-50"
-                            >
-                              <Search className="h-3.5 w-3.5 text-slate-400" />
-                              {suggestion}
-                            </button>
-                          ))}
+                        <div className="p-6 text-center text-sm text-slate-500">
+                          No products found matching &quot;{searchText}&quot;
                         </div>
                       )}
                     </motion.div>
@@ -389,10 +453,12 @@ export function Navbar() {
                 </AnimatePresence>
               </div>
 
-              {/* Cart Button - Keep as is */}
-              <Link
-                href="/cart"
-                className="relative flex items-center gap-2 rounded-full bg-linear-to-r from-orange-500 to-red-500 px-4 py-1.5 text-sm font-semibold text-white"
+              {/* Cart Drawer Trigger Button */}
+              <button
+                type="button"
+                onClick={openCartDrawer}
+                aria-label={`Open shopping bag with ${cartCount} items`}
+                className="relative flex items-center gap-2 rounded-full bg-linear-to-r from-orange-500 to-red-500 px-4 py-1.5 text-sm font-semibold text-white shadow-2xs hover:shadow-md transition-all active:scale-95 cursor-pointer"
               >
                 <ShoppingCart className="h-4 w-4" />
                 Cart
@@ -401,7 +467,7 @@ export function Navbar() {
                     {cartCount > 99 ? "99+" : cartCount}
                   </span>
                 )}
-              </Link>
+              </button>
             </div>
 
             {/* Mobile Menu Button */}

@@ -19,3 +19,8 @@ export async function createReview(input: CreateReviewInput): Promise<{ review: 
     },
   });
 }
+
+export async function fetchProductReviews(productId: string): Promise<ProductReview[]> {
+  const data = await requestApi<{ reviews: ProductReview[] }>(`/reviews?productId=${productId}`);
+  return data.reviews ?? [];
+}

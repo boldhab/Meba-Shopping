@@ -33,6 +33,7 @@ export async function requestApi<T>(path: string, options: RequestOptions = {}):
   const response = await fetch(`${apiClient.baseUrl}${path}`, {
     method: options.method ?? "GET",
     headers,
+    credentials: "include",
     body: options.body
       ? isFormDataBody
         ? options.body as FormData

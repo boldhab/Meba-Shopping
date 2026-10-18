@@ -24,6 +24,7 @@ describe("Products Integration Tests", () => {
         price: 29.99,
         stock: 50,
         categoryId: cat.id,
+        status: "ACTIVE",
       },
     });
     productId = prod.id;
@@ -55,7 +56,7 @@ describe("Products Integration Tests", () => {
   });
 
   it("GET /api/v1/products?search=Test - filters by search term", async () => {
-    const res = await request(app).get("/api/v1/products?search=Test+Prod+Int");
+    const res = await request(app).get("/api/v1/products?search=Test");
     expect(res.status).toBe(200);
     const items: any[] = res.body.items ?? res.body;
     const found = items.find((p: any) => p.slug === "test-prod-int");

@@ -6,6 +6,7 @@ export type ShippingDetails = {
   shippingCity: string;
   shippingZip: string;
   shippingCountry: string;
+  paymentMethod?: string;
 };
 
 export type OrderItem = {
@@ -54,4 +55,18 @@ export async function getOrderById(orderId: string, token: string): Promise<Orde
     method: "GET",
     token,
   });
+}
+
+export async function downloadOrderInvoice(orderId: string, token: string): Promise<Blob> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+  const res = await fetch(`${apiUrl}/orders/${orderId}/invoice`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+  });
+  if (!res.ok) {
+    throw new Error("Failed to download invoice");
+  }
+  return await res.blob();
 }

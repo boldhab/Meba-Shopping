@@ -3,13 +3,16 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import {
 	addCartItem,
+	applyCartCoupon,
 	CartItem,
 	CartQuote,
 	CartState,
 	clearCart as clearCartApi,
 	getCart,
 	getCartQuote,
+	getGuestCartQuote,
 	mergeGuestCartToServer,
+	removeCartCoupon,
 	removeCartItem,
 	updateCartItemQuantity,
 } from "@/lib/api/cart";
@@ -29,27 +32,24 @@ type CartContextValue = {
 	checkoutAllowed: boolean;
 	minCartValueGap: number;
 	error: string | null;
+	isCartDrawerOpen: boolean;
+	openCartDrawer: () => void;
+	closeCartDrawer: () => void;
 	addItem: (item: CartItem) => Promise<void>;
 	updateItemQuantity: (productId: string, variantId: string | undefined, quantity: number) => Promise<void>;
 	removeItem: (productId: string, variantId?: string) => Promise<void>;
 	clearCart: () => Promise<void>;
 	refreshQuote: () => Promise<void>;
-	applyCoupon: (code: string) => boolean;
-	removeCoupon: () => void;
+	applyCoupon: (code: string) => Promise<boolean>;
+	removeCoupon: () => Promise<void>;
 };
 
-const COUPON_DISCOUNTS: Record<string, number> = {
-	SAVE10: 0.1,
-	MEBA15: 0.15,
-};
+const DEFAULT_FREE_SHIPPING_THRESHOLD = 1000;
 
-const GUEST_FREE_SHIPPING_THRESHOLD = 50;
-
-function buildGuestQuote(items: CartItem[], couponCode: string | null): CartQuote {
+function buildLocalGuestQuote(items: CartItem[], couponCode: string | null): CartQuote {
 	const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-	const discountRate = couponCode ? COUPON_DISCOUNTS[couponCode] ?? 0 : 0;
-	const discount = subtotal * discountRate;
-	const shipping = subtotal > 0 && subtotal < GUEST_FREE_SHIPPING_THRESHOLD ? 7.99 : 0;
+	const discount = 0;
+	const shipping = subtotal > 0 && subtotal < DEFAULT_FREE_SHIPPING_THRESHOLD ? 100 : 0;
 	const tax = 0;
 	const total = Math.max(subtotal - discount + shipping + tax, 0);
 
@@ -69,7 +69,7 @@ function buildGuestQuote(items: CartItem[], couponCode: string | null): CartQuot
 		rules: {
 			minCartValue: 0,
 			maxQuantityPerProduct: 999,
-			freeShippingThreshold: GUEST_FREE_SHIPPING_THRESHOLD,
+			freeShippingThreshold: DEFAULT_FREE_SHIPPING_THRESHOLD,
 			taxRatePercent: 0,
 			abandonedHours: 24,
 		},
@@ -93,9 +93,17 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 	const [couponCode, setCouponCode] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [isQuoteLoading, setIsQuoteLoading] = useState(false);
+	const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+
+	const openCartDrawer = useCallback(() => setIsCartDrawerOpen(true), []);
+	const closeCartDrawer = useCallback(() => setIsCartDrawerOpen(false), []);
 
 	const captureCartError = useCallback((reason: unknown) => {
 		if (reason instanceof ApiRequestError) {
+			setError(reason.message);
+			return;
+		}
+		if (reason instanceof Error) {
 			setError(reason.message);
 			return;
 		}
@@ -107,7 +115,24 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 		const source = nextCartState ?? cartState;
 
 		if (!token) {
-			setCartQuote(buildGuestQuote(source.items, couponCode));
+			try {
+				if (source.items.length > 0) {
+					const quote = await getGuestCartQuote(
+						source.items.map((i) => ({
+							productId: i.productId,
+							quantity: i.quantity,
+							variantId: i.variantId,
+							variantLabel: i.variantLabel,
+						})),
+						couponCode
+					);
+					setCartQuote(quote);
+					return;
+				}
+			} catch {
+				// Fallback to local
+			}
+			setCartQuote(buildLocalGuestQuote(source.items, couponCode));
 			return;
 		}
 
@@ -115,6 +140,9 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 		try {
 			const nextQuote = await getCartQuote(token);
 			setCartQuote(nextQuote);
+			if (nextQuote.couponCode) {
+				setCouponCode(nextQuote.couponCode);
+			}
 		} catch (reason) {
 			captureCartError(reason);
 		} finally {
@@ -140,8 +168,9 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 					const quote = await getCartQuote(token);
 					if (!mounted) return;
 					setCartQuote(quote);
+					if (quote.couponCode) setCouponCode(quote.couponCode);
 				} else {
-					setCartQuote(buildGuestQuote(next.items, couponCode));
+					setCartQuote(buildLocalGuestQuote(next.items, couponCode));
 				}
 			} catch (reason) {
 				if (mounted) {
@@ -159,7 +188,7 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 		return () => {
 			mounted = false;
 		};
-	}, [token, couponCode, captureCartError]);
+	}, [token, captureCartError]);
 
 	const addItem = useCallback(async (item: CartItem) => {
 		try {
@@ -167,11 +196,12 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 			const next = await addCartItem(item, token);
 			setCartState(next);
 			await refreshQuote(next);
+			openCartDrawer();
 		} catch (reason) {
 			captureCartError(reason);
 			throw reason;
 		}
-	}, [token, captureCartError, refreshQuote]);
+	}, [token, captureCartError, refreshQuote, openCartDrawer]);
 
 	const updateItemQuantity = useCallback(
 		async (productId: string, variantId: string | undefined, quantity: number) => {
@@ -213,34 +243,62 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 		}
 	}, [token, captureCartError, refreshQuote]);
 
-	const applyCoupon = useCallback((code: string) => {
-		if (token) {
-			setError("Backend coupon validation is not available yet.");
-			return false;
-		}
-
+	const applyCoupon = useCallback(async (code: string): Promise<boolean> => {
 		const normalized = code.trim().toUpperCase();
-		if (!normalized || !(normalized in COUPON_DISCOUNTS)) {
+		if (!normalized) return false;
+
+		setError(null);
+		try {
+			if (token) {
+				const quote = await applyCartCoupon(token, normalized);
+				setCartQuote(quote);
+				setCouponCode(normalized);
+				return true;
+			} else {
+				const quote = await getGuestCartQuote(
+					cartState.items.map((i) => ({
+						productId: i.productId,
+						quantity: i.quantity,
+						variantId: i.variantId,
+						variantLabel: i.variantLabel,
+					})),
+					normalized
+				);
+				setCartQuote(quote);
+				setCouponCode(normalized);
+				return true;
+			}
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : "Invalid or expired coupon code.";
+			setError(msg);
 			return false;
 		}
-		setCouponCode(normalized);
-		return true;
-	}, [token]);
+	}, [token, cartState.items]);
 
-	const removeCoupon = useCallback(() => {
-		if (token) {
-			setError("Backend coupon validation is not available yet.");
-			return;
+	const removeCoupon = useCallback(async () => {
+		setError(null);
+		try {
+			if (token) {
+				const quote = await removeCartCoupon(token);
+				setCartQuote(quote);
+				setCouponCode(null);
+			} else {
+				setCouponCode(null);
+				const quote = await getGuestCartQuote(
+					cartState.items.map((i) => ({
+						productId: i.productId,
+						quantity: i.quantity,
+						variantId: i.variantId,
+						variantLabel: i.variantLabel,
+					})),
+					null
+				);
+				setCartQuote(quote);
+			}
+		} catch (err: unknown) {
+			captureCartError(err);
 		}
-
-		setCouponCode(null);
-	}, [token]);
-
-	useEffect(() => {
-		if (!token) {
-			setCartQuote(buildGuestQuote(cartState.items, couponCode));
-		}
-	}, [token, cartState.items, couponCode]);
+	}, [token, cartState.items, captureCartError]);
 
 	const totalItems = useMemo(
 		() => cartState.items.reduce((sum, item) => sum + item.quantity, 0),
@@ -269,6 +327,9 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 			checkoutAllowed,
 			minCartValueGap,
 			error,
+			isCartDrawerOpen,
+			openCartDrawer,
+			closeCartDrawer,
 			addItem,
 			updateItemQuantity,
 			removeItem,
@@ -293,6 +354,9 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
 			checkoutAllowed,
 			minCartValueGap,
 			error,
+			isCartDrawerOpen,
+			openCartDrawer,
+			closeCartDrawer,
 			addItem,
 			updateItemQuantity,
 			removeItem,

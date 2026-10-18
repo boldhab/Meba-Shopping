@@ -85,3 +85,24 @@ export async function getCurrentUser(token: string): Promise<{ user: AuthUser }>
 export function getGoogleAuthStartUrl() {
   return `${apiClient.baseUrl}/auth/google/start`;
 }
+
+export async function exchangeOAuthCode(code: string): Promise<AuthResponse> {
+  return requestApi<AuthResponse>("/auth/oauth/exchange", {
+    method: "POST",
+    body: { code }
+  });
+}
+
+export async function changePassword(token: string, input: { currentPassword: string; newPassword: string }): Promise<{ message: string }> {
+  return requestApi<{ message: string }>("/auth/change-password", {
+    method: "POST",
+    token,
+    body: input,
+  });
+}
+
+export async function logout(): Promise<{ message: string }> {
+  return requestApi<{ message: string }>("/auth/logout", {
+    method: "POST",
+  });
+}

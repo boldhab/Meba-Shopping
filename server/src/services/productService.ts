@@ -120,6 +120,8 @@ export const productService = {
     imageUrl?: string | null;
     description?: string | null;
     price: number;
+    compareAtPrice?: number | null;
+    discountPercent?: number | null;
     stock: number;
     categoryId: string;
     status?: ProductStatus;
@@ -143,12 +145,18 @@ export const productService = {
       throw new ApiError(404, "Category not found.");
     }
 
-    if (existingProduct.items.some((item) => item.slug === input.slug)) {
+    if (existingProduct.items.some((item: any) => item.slug === input.slug)) {
       throw new ApiError(409, "A product with that slug already exists.");
+    }
+
+    let calculatedDiscount = input.discountPercent;
+    if (input.compareAtPrice && input.compareAtPrice > input.price && !calculatedDiscount) {
+      calculatedDiscount = Math.round(((input.compareAtPrice - input.price) / input.compareAtPrice) * 100);
     }
 
     return productRepository.create({
       ...input,
+      discountPercent: calculatedDiscount,
       imageUrl: input.imageUrl?.trim() || null,
       description: input.description?.trim() || null,
     });
@@ -162,6 +170,8 @@ export const productService = {
       imageUrl?: string | null;
       description?: string | null;
       price?: number;
+      compareAtPrice?: number | null;
+      discountPercent?: number | null;
       stock?: number;
       categoryId?: string;
       status?: ProductStatus;
@@ -194,13 +204,25 @@ export const productService = {
         includeInactive: true,
       });
 
-      if (slugMatches.items.some((item) => item.slug === input.slug && item.id !== productId)) {
+      if (slugMatches.items.some((item: any) => item.slug === input.slug && item.id !== productId)) {
         throw new ApiError(409, "A product with that slug already exists.");
       }
     }
 
+    const nextPrice = input.price !== undefined ? input.price : Number(existing.price);
+    const nextCompareAt = input.compareAtPrice !== undefined ? input.compareAtPrice : existing.compareAtPrice ? Number(existing.compareAtPrice) : null;
+    let nextDiscount = input.discountPercent !== undefined ? input.discountPercent : existing.discountPercent;
+
+    if (nextCompareAt && nextCompareAt > nextPrice) {
+      nextDiscount = Math.round(((nextCompareAt - nextPrice) / nextCompareAt) * 100);
+    } else if (nextCompareAt !== undefined && (nextCompareAt === null || nextCompareAt <= nextPrice)) {
+      nextDiscount = null;
+    }
+
     return productRepository.updateById(productId, {
       ...input,
+      compareAtPrice: nextCompareAt,
+      discountPercent: nextDiscount,
       imageUrl: input.imageUrl === undefined ? undefined : input.imageUrl?.trim() || null,
       description: input.description === undefined ? undefined : input.description?.trim() || null,
     });
@@ -213,6 +235,9 @@ export const productService = {
       isDealActive?: boolean;
       dealStartAt?: string | null;
       dealEndAt?: string | null;
+      compareAtPrice?: number | null;
+      discountPercent?: number | null;
+      price?: number;
     }
   ) {
     const existing = await productRepository.findById(productId);
@@ -236,11 +261,30 @@ export const productService = {
           ? new Date(input.dealEndAt)
           : existing.dealEndAt;
 
+    let compareAtPrice = input.compareAtPrice !== undefined ? input.compareAtPrice : (existing.compareAtPrice ? Number(existing.compareAtPrice) : null);
+    let discountPercent = input.discountPercent !== undefined ? input.discountPercent : existing.discountPercent;
+    let price = input.price !== undefined ? input.price : Number(existing.price);
+
+    if (input.discountPercent !== undefined && input.discountPercent !== null) {
+      if (!compareAtPrice || compareAtPrice <= price) {
+        compareAtPrice = price;
+      }
+      price = Number((compareAtPrice * (1 - input.discountPercent / 100)).toFixed(2));
+      discountPercent = input.discountPercent;
+    } else if (compareAtPrice && compareAtPrice > price) {
+      discountPercent = Math.round(((compareAtPrice - price) / compareAtPrice) * 100);
+    } else if (compareAtPrice !== undefined && (compareAtPrice === null || compareAtPrice <= price)) {
+      discountPercent = null;
+    }
+
     return productRepository.updateDealByProductId(productId, {
       dealType: parsedDealType as DealType | null,
       isDealActive,
       dealStartAt,
       dealEndAt,
+      compareAtPrice,
+      discountPercent,
+      price: input.discountPercent !== undefined || input.price !== undefined ? price : undefined,
     });
   },
 

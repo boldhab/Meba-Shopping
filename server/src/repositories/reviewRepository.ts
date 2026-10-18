@@ -8,6 +8,7 @@ export const reviewRepository = {
         productId: input.productId,
         rating: input.rating,
         comment: input.comment,
+        status: "APPROVED",
       },
       include: {
         user: {
@@ -17,6 +18,36 @@ export const reviewRepository = {
           },
         },
       },
+    });
+  },
+
+  async findByProductId(productId: string) {
+    return prisma.review.findMany({
+      where: { productId, status: "APPROVED" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
+  async findAll() {
+    return prisma.review.findMany({
+      where: { status: "APPROVED" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
     });
   },
 };

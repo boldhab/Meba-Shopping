@@ -6,6 +6,7 @@ import { productService } from "../services/productService";
 import { inventoryService } from "../services/inventoryService";
 import { ApiError } from "../utils/apiError";
 import { uploadImage } from "../utils/uploadImage";
+import { parseCsv } from "../utils/csvParser";
 import { ProductStatus, ReviewStatus } from "@prisma/client";
 
 const updateDealSchema = z
@@ -14,6 +15,9 @@ const updateDealSchema = z
     isDealActive: z.boolean().optional(),
     dealStartAt: z.string().datetime().nullable().optional(),
     dealEndAt: z.string().datetime().nullable().optional(),
+    compareAtPrice: z.coerce.number().positive().nullable().optional(),
+    discountPercent: z.coerce.number().int().min(1).max(99).nullable().optional(),
+    price: z.coerce.number().positive().optional(),
   })
   .refine(
     (payload) => {
@@ -35,6 +39,8 @@ const upsertProductSchema = z.object({
   imageUrl: z.string().url().nullable().optional(),
   description: z.string().max(3000).nullable().optional(),
   price: z.coerce.number().positive(),
+  compareAtPrice: z.coerce.number().positive().nullable().optional(),
+  discountPercent: z.coerce.number().int().min(1).max(99).nullable().optional(),
   stock: z.coerce.number().int().min(0),
   categoryId: z.string().min(1),
   status: z.nativeEnum(ProductStatus).optional(),
@@ -319,7 +325,7 @@ export const adminController = {
           lowStockProducts: lowStockProducts.length,
         },
         lowStockProducts,
-        recentOrders: recentOrders.map((order) => ({
+        recentOrders: recentOrders.map((order: any) => ({
           ...order,
           totalAmount: Number(order.totalAmount),
         })),
@@ -434,8 +440,8 @@ export const adminController = {
         }),
       ]);
 
-      const productIds = topCartItems.map((item) => item.productId);
-      const products = productIds.length
+      const productIds = topCartItems.map((item: any) => item.productId);
+      const products = (productIds.length
         ? await prisma.product.findMany({
             where: {
               id: {
@@ -448,10 +454,10 @@ export const adminController = {
               slug: true,
             },
           })
-        : [];
+        : []) as Array<{ id: string; name: string; slug: string }>;
 
       const productsById = new Map(products.map((product) => [product.id, product]));
-      const topProducts = topCartItems.map((item) => ({
+      const topProducts = topCartItems.map((item: any) => ({
         productId: item.productId,
         productName: productsById.get(item.productId)?.name ?? "Unknown product",
         productSlug: productsById.get(item.productId)?.slug ?? "",
@@ -460,9 +466,9 @@ export const adminController = {
 
       const averageCartValue = cartsWithItems.length
         ? toCurrency(
-            cartsWithItems.reduce((sum, cart) => {
+            cartsWithItems.reduce((sum: number, cart: any) => {
               const subtotal = cart.items.reduce(
-                (innerSum, item) => innerSum + Number(item.product.price) * item.quantity,
+                (innerSum: number, item: any) => innerSum + Number(item.product.price) * item.quantity,
                 0
               );
 
@@ -471,8 +477,8 @@ export const adminController = {
           )
         : 0;
 
-      const stockIssueItems = stockSensitiveCarts.reduce((sum, cart) => {
-        const issues = cart.items.filter((item) => item.quantity > item.product.stock || item.product.stock <= 0);
+      const stockIssueItems = stockSensitiveCarts.reduce((sum: number, cart: any) => {
+        const issues = cart.items.filter((item: any) => item.quantity > item.product.stock || item.product.stock <= 0);
         return sum + issues.length;
       }, 0);
 
@@ -882,7 +888,7 @@ export const adminController = {
       });
 
       response.json({
-        items: users.map((user) => ({
+        items: users.map((user: any) => ({
           id: user.id,
           name: user.name,
           email: user.email,
@@ -943,10 +949,10 @@ export const adminController = {
         updatedAt: user.updatedAt,
         orderCount: user._count.orders,
         reviewCount: user._count.reviews,
-        recentOrders: user.orders.map((order) => ({
+        recentOrders: user.orders.map((order: any) => ({
           ...order,
           totalAmount: Number(order.totalAmount),
-          items: order.items.map((item) => ({
+          items: order.items.map((item: any) => ({
             ...item,
             unitPrice: Number(item.unitPrice),
           })),
@@ -1034,7 +1040,7 @@ export const adminController = {
       });
 
       const headers = ["id", "name", "slug", "price", "stock", "categoryId", "status", "isFeatured", "allowBackorder", "lowStockThreshold"];
-      const rows = products.map((p) => [
+      const rows = products.map((p: any) => [
         p.id,
         `"${p.name.replace(/"/g, '""')}"`,
         p.slug,
@@ -1047,7 +1053,7 @@ export const adminController = {
         p.lowStockThreshold,
       ]);
 
-      const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      const csvContent = [headers.join(","), ...rows.map((r: any) => r.join(","))].join("\n");
 
       response.setHeader("Content-Type", "text/csv");
       response.setHeader("Content-Disposition", `attachment; filename=products_${new Date().toISOString().split("T")[0]}.csv`);
@@ -1064,45 +1070,137 @@ export const adminController = {
       }
 
       const csvContent = request.file.buffer.toString("utf-8");
-      const lines = csvContent.split(/\r?\n/).filter(line => line.trim() !== "");
-      if (lines.length < 2) {
+      const parsedRows = parseCsv(csvContent);
+      if (parsedRows.length < 2) {
         throw new ApiError(400, "CSV file is empty or missing headers.");
       }
 
-      const headers = lines[0].split(",");
-      const dataRows = lines.slice(1);
+      const headers = parsedRows[0].map((h) => h.trim().replace(/^"|"$/g, ""));
+      const dataRows = parsedRows.slice(1);
       let count = 0;
+      const errors: Array<{ row: number; error: string }> = [];
 
-      for (const row of dataRows) {
-        const values = row.split(","); // Simple split, won't handle commas in quotes perfectly
-        const item: any = {};
-        headers.forEach((h, i) => {
-          let val = values[i]?.replace(/^"|"$/g, "");
-          if (h === "price" || h === "stock" || h === "lowStockThreshold") {
-            item[h] = Number(val);
-          } else if (h === "isFeatured" || h === "allowBackorder") {
-            item[h] = val === "true";
-          } else {
-            item[h] = val;
+      for (let rowIndex = 0; rowIndex < dataRows.length; rowIndex++) {
+        const rowValues = dataRows[rowIndex];
+        try {
+          const item: any = {};
+          headers.forEach((h, i) => {
+            const val = rowValues[i]?.trim();
+            if (val === undefined || val === "") return;
+            if (h === "price" || h === "stock" || h === "lowStockThreshold") {
+              const num = Number(val);
+              if (!isNaN(num)) item[h] = num;
+            } else if (h === "isFeatured" || h === "allowBackorder") {
+              item[h] = val.toLowerCase() === "true" || val === "1";
+            } else if (h === "status") {
+              const upperStatus = val.toUpperCase();
+              if (Object.values(ProductStatus).includes(upperStatus as any)) {
+                item[h] = upperStatus;
+              }
+            } else {
+              item[h] = val;
+            }
+          });
+
+          if (!item.name) {
+            errors.push({ row: rowIndex + 2, error: "Product name is required" });
+            continue;
           }
-        });
 
-        if (item.slug && item.name && item.price !== undefined) {
+          if (!item.slug) {
+            item.slug = item.name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/(^-|-$)+/g, "");
+          }
+
+          if (item.price === undefined || isNaN(Number(item.price))) {
+            errors.push({ row: rowIndex + 2, error: "Valid product price is required" });
+            continue;
+          }
+
+          let targetCategoryId = item.categoryId;
+          if (targetCategoryId) {
+            const cat = await prisma.category.findFirst({
+              where: {
+                OR: [
+                  { id: targetCategoryId },
+                  { slug: targetCategoryId.toLowerCase().replace(/[^a-z0-9]+/g, "-") },
+                  { name: { equals: targetCategoryId, mode: "insensitive" } },
+                ],
+              },
+              select: { id: true },
+            });
+            if (cat) {
+              targetCategoryId = cat.id;
+            } else {
+              const slug =
+                targetCategoryId.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") || "general";
+              const newCat = await prisma.category.upsert({
+                where: { slug },
+                update: {},
+                create: { name: targetCategoryId, slug },
+              });
+              targetCategoryId = newCat.id;
+            }
+          } else {
+            const defaultCat = await prisma.category.upsert({
+              where: { slug: "general" },
+              update: {},
+              create: { name: "General", slug: "general" },
+            });
+            targetCategoryId = defaultCat.id;
+          }
+          item.categoryId = targetCategoryId;
+
           if (item.id) {
-            await prisma.product.update({
+            const existing = await prisma.product.findUnique({
               where: { id: item.id },
-              data: { ...item, id: undefined },
+              select: { id: true },
+            });
+            if (existing) {
+              const { id, ...dataToUpdate } = item;
+              await prisma.product.update({
+                where: { id },
+                data: dataToUpdate,
+              });
+              count++;
+              continue;
+            }
+          }
+
+          const existingBySlug = await prisma.product.findUnique({
+            where: { slug: item.slug },
+            select: { id: true },
+          });
+
+          if (existingBySlug) {
+            const { id, ...dataToUpdate } = item;
+            await prisma.product.update({
+              where: { id: existingBySlug.id },
+              data: dataToUpdate,
             });
           } else {
+            const { id, ...dataToCreate } = item;
             await prisma.product.create({
-              data: item,
+              data: {
+                ...dataToCreate,
+                price: Number(dataToCreate.price),
+                stock: dataToCreate.stock !== undefined ? Number(dataToCreate.stock) : 0,
+              },
             });
           }
           count++;
+        } catch (rowError: any) {
+          errors.push({ row: rowIndex + 2, error: rowError.message || "Failed to process row" });
         }
       }
 
-      response.json({ message: `Successfully processed ${count} products.`, count });
+      response.json({
+        message: `Successfully processed ${count} products.` + (errors.length > 0 ? ` (${errors.length} rows had errors).` : ""),
+        count,
+        errors,
+      });
     } catch (error) {
       next(error);
     }

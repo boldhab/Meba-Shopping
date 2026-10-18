@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { addCartItem } from "@/lib/api/cart";
 import { cancelAccountOrder, fetchAccountOrder, returnAccountOrder, type AccountOrder } from "@/lib/api/account";
+import { formatPrice } from "@/lib/utils/formatPrice";
 
 function money(value: number) {
-  return `${value.toLocaleString()} ETB`;
+  return formatPrice(value);
 }
 
-export default function OrderDetailPage({ params }: { params: { id: string } }) {
+export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const { token } = useAuth();
   const [order, setOrder] = useState<AccountOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,7 +30,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
       }
 
       try {
-        const next = await fetchAccountOrder(token, params.id);
+        const next = await fetchAccountOrder(token, id);
         if (isMounted) setOrder(next);
       } catch {
         if (isMounted) setOrder(null);
@@ -42,7 +44,7 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
     return () => {
       isMounted = false;
     };
-  }, [params.id, token]);
+  }, [id, token]);
 
   const syncOrder = (nextOrder: AccountOrder | null) => {
     if (!nextOrder) return;
@@ -127,11 +129,22 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <div className="rounded-lg border border-slate-100 p-3">
             <p className="text-sm font-semibold text-slate-800">Shipping address</p>
-            <p className="text-sm text-slate-600">Bole Road, House 12, Addis Ababa</p>
+            <p className="text-sm text-slate-600 font-medium">{order.shippingName || "Customer"}</p>
+            <p className="text-sm text-slate-600">{order.shippingAddress || "Bole Road, House 12"}</p>
+            <p className="text-sm text-slate-600">
+              {order.shippingCity || "Addis Ababa"}
+              {order.shippingZip ? `, ${order.shippingZip}` : ""}, {order.shippingCountry || "Ethiopia"}
+            </p>
           </div>
           <div className="rounded-lg border border-slate-100 p-3">
-            <p className="text-sm font-semibold text-slate-800">Billing address</p>
-            <p className="text-sm text-slate-600">Bole Road, House 12, Addis Ababa</p>
+            <p className="text-sm font-semibold text-slate-800">Billing & Payment</p>
+            <p className="text-sm text-slate-600">
+              Payment Status: <span className="font-semibold text-slate-800">{order.paymentStatus}</span>
+            </p>
+            <p className="text-sm text-slate-600">
+              Fulfillment Status: <span className="font-semibold text-slate-800">{order.orderStatus}</span>
+            </p>
+            <p className="text-xs text-slate-500 mt-1">Addis Ababa Metropolitan Express Delivery</p>
           </div>
         </div>
 

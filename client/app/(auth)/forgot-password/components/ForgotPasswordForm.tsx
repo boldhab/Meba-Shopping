@@ -308,7 +308,7 @@ export function ForgotPasswordForm() {
                     disabled={isSubmitting}
                     className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Didn't receive a code? Resend
+                    Didn&apos;t receive a code? Resend
                   </button>
                 </div>
               </form>
@@ -333,7 +333,7 @@ export function ForgotPasswordForm() {
                 Forgot password?
               </h2>
               <p className="mt-2 text-slate-600">
-                No worries! Enter your email and we'll send you a reset code.
+                No worries! Enter your email and we&apos;ll send you a reset code.
               </p>
             </div>
 
@@ -393,7 +393,7 @@ export function ForgotPasswordForm() {
 
         {/* Footer Note */}
         <p className="text-center text-xs text-slate-500 mt-6">
-          We'll send a 6-digit verification code to your email address
+          We&apos;ll send a 6-digit verification code to your email address
         </p>
       </div>
     </div>

@@ -10,11 +10,12 @@ import {
   returnAccountOrder,
   type AccountOrder,
 } from "@/lib/api/account";
+import { formatPrice } from "@/lib/utils/formatPrice";
 
 type OrderStatusFilter = "All" | AccountOrder["orderStatus"];
 
 function money(value: number) {
-  return `${value.toLocaleString()} ETB`;
+  return formatPrice(value);
 }
 
 export default function OrdersPage() {

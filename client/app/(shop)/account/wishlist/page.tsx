@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useToast } from "@/contexts/ToastContext";
 import { addCartItem } from "@/lib/api/cart";
 import {
   fetchWishlistItems,
@@ -17,6 +18,7 @@ function money(value: number) {
 
 export default function WishlistPage() {
   const { token } = useAuth();
+  const { toast } = useToast();
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<AccountView>("date");
@@ -61,36 +63,47 @@ export default function WishlistPage() {
     return next;
   }, [items, sortBy]);
 
-  const removeItem = async (id: string) => {
-    const ok = window.confirm("Remove this product from wishlist?");
-    if (!ok) return;
+  const removeItem = async (id: string, itemName?: string) => {
     if (!token) return;
-    const nextItems = await removeWishlistItem(token, id);
-    setItems(nextItems);
+    try {
+      const nextItems = await removeWishlistItem(token, id);
+      setItems(nextItems);
+      toast.info(itemName ? `Removed ${itemName} from wishlist.` : "Item removed from wishlist.");
+    } catch {
+      toast.error("Failed to remove item from wishlist.");
+    }
   };
 
   const addToCart = async (item: WishlistItem) => {
     const quantity = qtyByItem[item.id] ?? item.quantity ?? 1;
-    await addCartItem(
-      {
-        productId: item.id,
-        slug: item.slug,
-        name: item.name,
-        price: item.salePrice ?? item.price,
-        quantity,
-        stock: item.stockStatus === "Out of stock" ? 0 : 10,
-        imageUrl: item.image,
-      },
-      token
-    );
-    alert(`${item.name} added to cart.`);
+    try {
+      await addCartItem(
+        {
+          productId: item.productId || item.id,
+          slug: item.slug,
+          name: item.name,
+          price: item.salePrice ?? item.price,
+          quantity,
+          stock: item.stockStatus === "Out of stock" ? 0 : 10,
+          imageUrl: item.image,
+        },
+        token
+      );
+      toast.success(`Added ${item.name} to your cart.`, { title: "Cart Updated" });
+    } catch {
+      toast.error("Could not add item to cart. Please try again.");
+    }
   };
 
   const moveToCart = async (item: WishlistItem) => {
     await addToCart(item);
     if (!token) return;
-    const nextItems = await removeWishlistItem(token, item.id);
-    setItems(nextItems);
+    try {
+      const nextItems = await removeWishlistItem(token, item.id);
+      setItems(nextItems);
+    } catch {
+      // Ignored if add to cart succeeded
+    }
   };
 
   return (
@@ -176,7 +189,7 @@ export default function WishlistPage() {
                       <button onClick={() => moveToCart(item)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                         Move to cart
                       </button>
-                      <button onClick={() => void removeItem(item.id)} className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50">
+                      <button onClick={() => void removeItem(item.id, item.name)} className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50">
                         Remove from wishlist
                       </button>
                       <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">

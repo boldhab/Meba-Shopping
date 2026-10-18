@@ -22,10 +22,40 @@ const upload = multer({
 
 export const productImageUpload = upload.single("image");
 
+const csvUploadMulter = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
+  fileFilter: (_request: Request, file, callback) => {
+    const isCsvMime = /^(text\/csv|text\/plain|application\/vnd\.ms-excel|application\/csv|text\/x-csv)$/i.test(file.mimetype);
+    const isCsvExt = /\.csv$/i.test(file.originalname);
+    if (!isCsvMime && !isCsvExt) {
+      callback(new ApiError(400, "Invalid file type. Please upload a valid CSV file (.csv)."));
+      return;
+    }
+    callback(null, true);
+  },
+});
+
+export const csvFileUpload = (req: any, res: any, next: any) => {
+  csvUploadMulter.fields([
+    { name: "file", maxCount: 1 },
+    { name: "csv", maxCount: 1 },
+    { name: "image", maxCount: 1 },
+  ])(req, res, (err) => {
+    if (err) return next(normalizeUploadError(err));
+    if (req.files) {
+      req.file = req.files["file"]?.[0] || req.files["csv"]?.[0] || req.files["image"]?.[0];
+    }
+    next();
+  });
+};
+
 export function normalizeUploadError(error: unknown) {
   if (error instanceof MulterError) {
     if (error.code === "LIMIT_FILE_SIZE") {
-      return new ApiError(400, "Image file is too large. Max size is 5MB.");
+      return new ApiError(400, "File is too large. Max size is 10MB.");
     }
 
     return new ApiError(400, "Invalid upload payload.");

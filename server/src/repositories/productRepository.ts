@@ -149,6 +149,8 @@ export const productRepository = {
     imageUrl: string | null;
     description: string | null;
     price: number;
+    compareAtPrice?: number | null;
+    discountPercent?: number | null;
     stock: number;
     categoryId: string;
     status?: ProductStatus;
@@ -167,6 +169,8 @@ export const productRepository = {
         imageUrl: input.imageUrl,
         description: input.description,
         price: input.price,
+        compareAtPrice: input.compareAtPrice,
+        discountPercent: input.discountPercent,
         stock: input.stock,
         categoryId: input.categoryId,
         status: input.status || ProductStatus.DRAFT,
@@ -190,6 +194,8 @@ export const productRepository = {
       imageUrl?: string | null;
       description?: string | null;
       price?: number;
+      compareAtPrice?: number | null;
+      discountPercent?: number | null;
       stock?: number;
       categoryId?: string;
       status?: ProductStatus;
@@ -210,6 +216,8 @@ export const productRepository = {
         imageUrl: input.imageUrl,
         description: input.description,
         price: input.price,
+        compareAtPrice: input.compareAtPrice,
+        discountPercent: input.discountPercent,
         stock: input.stock,
         categoryId: input.categoryId,
         status: input.status,
@@ -232,16 +240,29 @@ export const productRepository = {
       isDealActive: boolean;
       dealStartAt: Date | null;
       dealEndAt: Date | null;
+      compareAtPrice?: number | null;
+      discountPercent?: number | null;
+      price?: number;
     }
   ) {
+    const data: any = {
+      dealType: input.dealType,
+      isDealActive: input.isDealActive,
+      dealStartAt: input.dealStartAt,
+      dealEndAt: input.dealEndAt,
+    };
+    if (input.compareAtPrice !== undefined) {
+      data.compareAtPrice = input.compareAtPrice;
+    }
+    if (input.discountPercent !== undefined) {
+      data.discountPercent = input.discountPercent;
+    }
+    if (input.price !== undefined) {
+      data.price = input.price;
+    }
     return prisma.product.update({
       where: { id },
-      data: {
-        dealType: input.dealType,
-        isDealActive: input.isDealActive,
-        dealStartAt: input.dealStartAt,
-        dealEndAt: input.dealEndAt,
-      },
+      data,
       include: { category: true },
     });
   },

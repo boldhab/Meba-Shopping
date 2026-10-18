@@ -19,5 +19,41 @@ export const paymentController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  async createMobileIntent(request: Request, response: Response, next: NextFunction) {
+    try {
+      const { orderId, provider, mobileNumber } = request.body;
+      const userId = request.user?.id;
+      if (!orderId) {
+        throw new ApiError(400, "orderId is required.");
+      }
+      if (!userId) {
+        throw new ApiError(401, "Unauthorized");
+      }
+      if (!provider || (provider !== "telebirr" && provider !== "cbebirr")) {
+        throw new ApiError(400, "Valid provider ('telebirr' or 'cbebirr') is required.");
+      }
+
+      const mobileData = await paymentService.createMobileMoneyPayment(orderId, userId, provider, mobileNumber);
+      response.json(mobileData);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async verifyPayment(request: Request, response: Response, next: NextFunction) {
+    try {
+      const { orderId } = request.params;
+      const userId = request.user?.id;
+      if (!userId) {
+        throw new ApiError(401, "Unauthorized");
+      }
+
+      const result = await paymentService.verifyPayment(String(orderId), userId);
+      response.json(result);
+    } catch (error) {
+      next(error);
+    }
   }
 };

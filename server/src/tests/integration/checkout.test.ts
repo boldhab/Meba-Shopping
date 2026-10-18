@@ -17,13 +17,19 @@ describe("Checkout & Payment Integration Tests", () => {
   let orderId: string;
 
   beforeAll(async () => {
+    await prisma.order.deleteMany({ where: { user: { email: { contains: "testchk" } } } });
     await prisma.user.deleteMany({ where: { email: { contains: "testchk" } } });
     
     // Register to get token
+    const vRes = await request(app).post("/api/v1/auth/email/request-verification").send({
+      email: "testchk1@example.com"
+    });
+
     const res = await request(app).post("/api/v1/auth/register").send({
       email: "testchk1@example.com",
       password: "password123",
-      name: "Test Checkout"
+      name: "Test Checkout",
+      verificationCode: vRes.body.devVerificationCode
     });
     token = res.body.token;
 
@@ -40,6 +46,7 @@ describe("Checkout & Payment Integration Tests", () => {
   });
 
   afterAll(async () => {
+    await prisma.order.deleteMany({ where: { user: { email: { contains: "testchk" } } } });
     await prisma.user.deleteMany({ where: { email: { contains: "testchk" } } });
     await prisma.$disconnect();
   });
