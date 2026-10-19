@@ -1,2 +1,1 @@
-# Meba Supermarket System
 
